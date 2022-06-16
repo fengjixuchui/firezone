@@ -50,8 +50,17 @@ defmodule FzHttpWeb.Authentication do
   end
 
   def sign_in(conn, user, auth) do
-    Telemetry.login(user)
+    Telemetry.login()
     Users.update_last_signed_in(user, auth)
+
+    conn =
+      with %{provider: :identity} <- auth,
+           true <- FzHttp.MFA.exists?(user) do
+        Plug.Conn.put_session(conn, :mfa_required_at, DateTime.utc_now())
+      else
+        _ -> conn
+      end
+
     __MODULE__.Plug.sign_in(conn, user)
   end
 

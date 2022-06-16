@@ -1,0 +1,114 @@
+<%= if @live_action == :change_password do %>
+  <%= live_modal(
+      FzHttpWeb.UserLive.FormComponent,
+      return_to: Routes.setting_unprivileged_account_path(@socket, :show),
+      title: "Change password",
+      id: "user-form-component",
+      user: @current_user,
+      current_user: @current_user,
+      action: :edit,
+      form: "user-form") %>
+<% end %>
+
+<%= if @live_action == :register_mfa do %>
+  <.live_component module={FzHttpWeb.MFA.RegisterComponent}
+      id="register-mfa"
+      user={@current_user}
+      return_to={Routes.setting_unprivileged_account_path(@socket, :show)} />
+<% end %>
+
+<%= live_patch("<- Back to devices", to: Routes.device_unprivileged_index_path(@socket, :index)) %>
+
+<%= render FzHttpWeb.SharedView, "heading.html", page_title: @page_title %>
+
+<section class="section is-main-section">
+  <%= render FzHttpWeb.SharedView, "flash.html", assigns %>
+
+  <div class="block">
+    <p>
+      Configure account settings.
+    </p>
+  </div>
+
+  <div class="level">
+    <div class="level-left">
+      <h4 class="title is-4">Details</h4>
+    </div>
+
+    <div class="level-right">
+      <%= live_patch(to: Routes.setting_unprivileged_account_path(@socket, :change_password), class: "button") do %>
+        <span class="icon is-small">
+          <i class="mdi mdi-pencil"></i>
+        </span>
+        <span>Change Password</span>
+      <% end %>
+    </div>
+  </div>
+
+  <%= render FzHttpWeb.SharedView, "user_details.html", user: @current_user %>
+</section>
+
+<section class="section is-main-section">
+  <h4 class="title is-4">
+    Active Sessions
+  </h4>
+
+  <div class="block">
+    <p>
+      Your active Firezone web sessions. Each row corresponds to an open browser
+      tab connected to Firezone.
+    </p>
+  </div>
+
+  <div class="block">
+    <table class="table is-bordered is-hoverable is-striped is-fullwidth">
+      <thead>
+        <tr>
+          <th>Came Online</th>
+          <th>Last Signed In</th>
+          <th>Remote IP</th>
+          <th>User Agent</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= for {meta, index} <- Enum.with_index(@metas) do %>
+          <tr>
+            <td data-timestamp={meta.online_at}
+                phx-hook="FormatTimestamp" id={"meta-#{index}-online-at"}>…</td>
+            <td data-timestamp={meta.last_signed_in_at}
+                phx-hook="FormatTimestamp" id={"meta-#{index}-last-signed-in-at"}>…</td>
+            <td><%= meta.remote_ip || "-" %></td>
+            <td><%= meta.user_agent %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section is-main-section">
+  <h4 class="title is-4">
+    Multi Factor Authentication
+  </h4>
+
+  <div class="block">
+    <p>
+      Your MFA methods are invoked when login with username and password.
+    </p>
+  </div>
+
+  <div class="block">
+    <%= if length(@methods) > 0 do %>
+      <%= render FzHttpWeb.SharedView, "mfa_methods_table.html", methods: @methods %>
+    <% else %>
+      <div>No MFA methods added.</div>
+    <% end %>
+  </div>
+
+  <%= live_patch(to: Routes.setting_unprivileged_account_path(@socket, :register_mfa), class: "button") do %>
+    <span class="icon is-small">
+      <i class="mdi mdi-plus"></i>
+    </span>
+    <span>Add MFA Method</span>
+  <% end %>
+</section>

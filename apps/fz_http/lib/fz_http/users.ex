@@ -32,6 +32,10 @@ defmodule FzHttp.Users do
     Repo.exists?(from u in User, where: u.id == ^user_id)
   end
 
+  def list_admins do
+    Repo.all(from User, where: [role: :admin])
+  end
+
   def get_user!(email: email) do
     Repo.get_by!(User, email: email)
   end
@@ -66,7 +70,7 @@ defmodule FzHttp.Users do
       |> Repo.insert()
 
     case result do
-      {:ok, user} -> Telemetry.add_user(user)
+      {:ok, _user} -> Telemetry.add_user()
       _ -> nil
     end
 
@@ -87,7 +91,7 @@ defmodule FzHttp.Users do
   end
 
   def delete_user(%User{} = user) do
-    Telemetry.delete_user(user)
+    Telemetry.delete_user()
     Repo.delete(user)
   end
 

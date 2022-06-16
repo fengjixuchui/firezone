@@ -4,7 +4,7 @@ defmodule FzHttpWeb.SettingLive.Account do
   """
   use FzHttpWeb, :live_view
 
-  alias FzHttp.Users
+  alias FzHttp.{MFA, Users}
   alias FzHttpWeb.{Endpoint, Presence}
 
   @live_sessions_topic "notification:session"
@@ -16,6 +16,7 @@ defmodule FzHttpWeb.SettingLive.Account do
     {:ok,
      socket
      |> assign(:changeset, Users.change_user(socket.assigns.current_user))
+     |> assign(:methods, MFA.list_methods(socket.assigns.current_user))
      |> assign(:page_title, "Account Settings")
      |> assign(
        :metas,
@@ -25,7 +26,17 @@ defmodule FzHttpWeb.SettingLive.Account do
 
   @impl Phoenix.LiveView
   def handle_params(_params, _url, socket) do
-    {:noreply, socket}
+    admins = Users.list_admins()
+    {:noreply, assign(socket, :allow_delete, length(admins) > 1)}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("delete_authenticator", %{"id" => id}, socket) do
+    {:ok, _deleted} = id |> MFA.get_method!() |> MFA.delete_method()
+
+    {:noreply,
+     socket
+     |> assign(:methods, MFA.list_methods(socket.assigns.current_user))}
   end
 
   @impl Phoenix.LiveView

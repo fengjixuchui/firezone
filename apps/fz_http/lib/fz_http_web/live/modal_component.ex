@@ -23,10 +23,18 @@ defmodule FzHttpWeb.ModalComponent do
         </header>
         <section class="modal-card-body">
           <div class="block">
-            <%= live_component(@component, @opts) %>
+            <%= if is_atom(@component) do %>
+              <.live_component module={@component} {@opts} />
+            <% else %>
+              <%= @component %>
+            <% end %>
           </div>
         </section>
-        <footer class="modal-card-foot">
+        <footer class="modal-card-foot is-justify-content-flex-end">
+        <%= if !assigns[:hide_footer_content] do %>
+          <%= Phoenix.View.render(FzHttpWeb.SharedView, "submit_button.html",
+              button_text: @opts[:button_text], form: @opts[:form]) %>
+        <% end %>
         </footer>
       </div>
     </div>

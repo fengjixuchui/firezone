@@ -88,6 +88,7 @@ defmodule FzHttp.MixProject do
       {:jason, "~> 1.2"},
       {:phoenix_swoosh, "~> 1.0"},
       {:gen_smtp, "~> 1.0"},
+      {:nimble_totp, "~> 0.2"},
       # XXX: Change this when hex package is updated
       {:cidr, github: "firezone/cidr-elixir"},
       {:telemetry, "~> 1.0"},
@@ -111,12 +112,7 @@ defmodule FzHttp.MixProject do
         "ecto.create --quiet",
         "ecto.migrate",
         "test"
-      ],
-      "assets.compile": &compile_assets/1
+      ]
     ]
-  end
-
-  defp compile_assets(_) do
-    Mix.shell().cmd("cd assets && ./node_modules/.bin/webpack --mode development", quiet: false)
   end
 end

@@ -42,7 +42,7 @@ if config_env() == :prod do
   egress_interface = System.fetch_env!("EGRESS_INTERFACE")
   wireguard_public_key = System.fetch_env!("WIREGUARD_PUBLIC_KEY")
   wireguard_psk_dir = System.fetch_env!("WIREGUARD_PSK_DIR")
-  wireguard_dns = System.fetch_env!("WIREGUARD_DNS")
+  wireguard_dns = System.get_env("WIREGUARD_DNS")
   wireguard_allowed_ips = System.fetch_env!("WIREGUARD_ALLOWED_IPS")
   wireguard_persistent_keepalive = System.fetch_env!("WIREGUARD_PERSISTENT_KEEPALIVE")
   wireguard_ipv4_enabled = FzString.to_boolean(System.fetch_env!("WIREGUARD_IPV4_ENABLED"))
@@ -112,6 +112,7 @@ if config_env() == :prod do
   secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
   live_view_signing_salt = System.fetch_env!("LIVE_VIEW_SIGNING_SALT")
   cookie_signing_salt = System.fetch_env!("COOKIE_SIGNING_SALT")
+  cookie_encryption_salt = System.fetch_env!("COOKIE_ENCRYPTION_SALT")
 
   # Password is not needed if using bundled PostgreSQL, so use nil if it's not set.
   database_password = System.get_env("DATABASE_PASSWORD")
@@ -189,6 +190,7 @@ if config_env() == :prod do
   config :fz_http,
     wg_path: wg_path,
     cookie_signing_salt: cookie_signing_salt,
+    cookie_encryption_salt: cookie_encryption_salt,
     allow_unprivileged_device_management: allow_unprivileged_device_management,
     max_devices_per_user: max_devices_per_user,
     local_auth_enabled: local_auth_enabled,

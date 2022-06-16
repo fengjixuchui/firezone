@@ -21,29 +21,14 @@ end
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
-#
-# The watchers configuration can be used to run external
-# watchers to your application. For example, we use it
-# with webpack to recompile .js and .css sources.
 config :fz_http, FzHttpWeb.Endpoint,
   http: [port: 4000],
   debug_errors: true,
   code_reloader: true,
   check_origin: ["//127.0.0.1", "//localhost"],
   watchers: [
-    node: [
-      "node_modules/webpack/bin/webpack.js",
-      "--mode",
-      "development",
-      "--watch",
-      "--watch-options-stdin",
-      cd: Path.expand("../apps/fz_http/assets", __DIR__)
-    ]
+    node: ["esbuild.js", "dev", cd: Path.expand("../apps/fz_http/assets", __DIR__)]
   ]
-
-config :fz_vpn,
-  wg_path: "wg",
-  cli: FzVpn.CLI.Sandbox
 
 get_egress_interface = fn ->
   egress_interface_cmd = "route | grep '^default' | grep -o '[^ ]*$'"
@@ -52,10 +37,20 @@ end
 
 egress_interface = System.get_env("EGRESS_INTERFACE") || get_egress_interface.()
 
+{fz_wall_cli_module, _} =
+  Code.eval_string(System.get_env("FZ_WALL_CLI_MODULE", "FzWall.CLI.Sandbox"))
+
+{fz_vpn_cli_module, _} =
+  Code.eval_string(System.get_env("FZ_VPN_CLI_MODULE", "FzVpn.CLI.Sandbox"))
+
 config :fz_wall,
-  nft_path: "nft",
+  nft_path: System.get_env("NFT_PATH", "nft"),
   egress_interface: egress_interface,
-  cli: FzWall.CLI.Sandbox
+  cli: fz_wall_cli_module
+
+config :fz_vpn,
+  wg_path: "wg",
+  cli: fz_vpn_cli_module
 
 # Auth
 local_auth_enabled = System.get_env("LOCAL_AUTH_ENABLED") == "true"

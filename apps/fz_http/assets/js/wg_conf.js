@@ -1,4 +1,4 @@
-const QRCode = require('qrcode')
+import { renderQR } from './qrcode.js'
 
 const alertPrivateKeyError = function () {
 }
@@ -15,7 +15,10 @@ const renderConfig = function () {
     const privateKey = sessionStorage.getItem(publicKey)
 
     // XXX: Clear all private keys
-    sessionStorage.removeItem(publicKey)
+    setTimeout(() => {
+      sessionStorage.removeItem(publicKey)
+    }, 5000);
+
     const placeholder = document.getElementById("generating-config")
 
     if (privateKey) {
@@ -23,7 +26,7 @@ const renderConfig = function () {
       const config = templateConfig.replace("REPLACE_ME", privateKey)
 
       renderDownloadButton(config, deviceName)
-      renderQR(config)
+      renderQR(config, document.getElementById("qr-canvas"))
       renderTunnel(config)
 
       placeholder.classList.add("is-hidden")
@@ -50,19 +53,6 @@ const renderTunnel = function (config) {
   let container = document.getElementById("wg-conf-container")
   code.innerHTML = config
   container.classList.remove("is-hidden")
-}
-
-const renderQR = function (config) {
-  let canvas = document.getElementById("qr-canvas")
-  if (canvas) {
-    QRCode.toCanvas(canvas, config, {
-      errorCorrectionLevel: "H",
-      margin: 0,
-      width: 300
-    }, function (error) {
-      if (error) alert("QRCode Encode Error: " + error)
-    })
-  }
 }
 
 export { renderConfig }

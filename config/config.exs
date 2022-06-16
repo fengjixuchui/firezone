@@ -72,6 +72,7 @@ config :fz_http,
   git_sha: git_sha,
   cookie_secure: true,
   cookie_signing_salt: "Z9eq8iof",
+  cookie_encryption_salt: "3A33Dz4C2k",
   ecto_repos: [FzHttp.Repo],
   admin_email: "firezone@localhost",
   default_admin_password: "firezone1234",
@@ -128,8 +129,6 @@ config :fz_http, FzHttp.Vault,
   ]
 
 config :fz_http, FzHttp.Mailer, adapter: FzHttp.Mailer.NoopAdapter
-
-config :openid_connect, :http_client_options, ssl: [versions: [:"tlsv1.2"]]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
