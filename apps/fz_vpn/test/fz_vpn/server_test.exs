@@ -1,12 +1,9 @@
 defmodule FzVpn.ServerTest do
   use ExUnit.Case, async: true
-  import FzVpn.CLI
 
   setup %{stubbed_config: config} do
     test_pid = :global.whereis_name(:fz_vpn_server)
     :ok = GenServer.call(test_pid, {:set_config, config})
-
-    on_exit(fn -> cli().teardown() end)
 
     %{test_pid: test_pid}
   end
@@ -40,7 +37,7 @@ defmodule FzVpn.ServerTest do
                "key4" => %{allowed_ips: "127.0.0.1/32,::1/128", preshared_key: "foobar"}
              }
 
-      GenServer.call(test_pid, {:set_config, new_peers})
+      :ok = GenServer.call(test_pid, {:set_config, new_peers})
 
       assert :sys.get_state(test_pid) == %{
                "key5" => %{allowed_ips: "1.1.1.1/32,::2/128", preshared_key: "foobar"}

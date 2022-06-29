@@ -35,13 +35,11 @@ if config_env() == :prod do
   phoenix_port = String.to_integer(System.fetch_env!("PHOENIX_PORT"))
   admin_email = System.fetch_env!("ADMIN_EMAIL")
   default_admin_password = System.fetch_env!("DEFAULT_ADMIN_PASSWORD")
+  wireguard_private_key_path = System.fetch_env!("WIREGUARD_PRIVATE_KEY_PATH")
   wireguard_interface_name = System.fetch_env!("WIREGUARD_INTERFACE_NAME")
   wireguard_port = String.to_integer(System.fetch_env!("WIREGUARD_PORT"))
   nft_path = System.fetch_env!("NFT_PATH")
-  wg_path = System.fetch_env!("WG_PATH")
   egress_interface = System.fetch_env!("EGRESS_INTERFACE")
-  wireguard_public_key = System.fetch_env!("WIREGUARD_PUBLIC_KEY")
-  wireguard_psk_dir = System.fetch_env!("WIREGUARD_PSK_DIR")
   wireguard_dns = System.get_env("WIREGUARD_DNS")
   wireguard_allowed_ips = System.fetch_env!("WIREGUARD_ALLOWED_IPS")
   wireguard_persistent_keepalive = System.fetch_env!("WIREGUARD_PERSISTENT_KEEPALIVE")
@@ -56,6 +54,8 @@ if config_env() == :prod do
   telemetry_enabled = FzString.to_boolean(System.fetch_env!("TELEMETRY_ENABLED"))
   telemetry_id = System.fetch_env!("TELEMETRY_ID")
   guardian_secret_key = System.fetch_env!("GUARDIAN_SECRET_KEY")
+  disable_vpn_on_oidc_error = FzString.to_boolean(System.fetch_env!("DISABLE_VPN_ON_OIDC_ERROR"))
+  auto_create_oidc_users = FzString.to_boolean(System.fetch_env!("AUTO_CREATE_OIDC_USERS"))
 
   allow_unprivileged_device_management =
     FzString.to_boolean(System.fetch_env!("ALLOW_UNPRIVILEGED_DEVICE_MANAGEMENT"))
@@ -176,11 +176,9 @@ if config_env() == :prod do
     cli: FzWall.CLI.Live
 
   config :fz_vpn,
-    wireguard_psk_dir: wireguard_psk_dir,
-    wireguard_public_key: wireguard_public_key,
+    wireguard_private_key_path: wireguard_private_key_path,
     wireguard_interface_name: wireguard_interface_name,
-    wireguard_port: wireguard_port,
-    cli: FzVpn.CLI.Live
+    wireguard_port: wireguard_port
 
   # Guardian configuration
   config :fz_http, FzHttpWeb.Authentication,
@@ -188,7 +186,8 @@ if config_env() == :prod do
     secret_key: guardian_secret_key
 
   config :fz_http,
-    wg_path: wg_path,
+    disable_vpn_on_oidc_error: disable_vpn_on_oidc_error,
+    auto_create_oidc_users: auto_create_oidc_users,
     cookie_signing_salt: cookie_signing_salt,
     cookie_encryption_salt: cookie_encryption_salt,
     allow_unprivileged_device_management: allow_unprivileged_device_management,

@@ -99,7 +99,21 @@ default['firezone']['sysvinit_id'] = 'SUP'
 # Local email/password authentication is enabled by default
 default['firezone']['authentication']['local']['enabled'] = true
 
+# Automatically create users siging in from OIDC for the first time. Disable this
+# and manually create them (leaving their password blank) if you wish to only
+# allow existing certain existing users to sign in.
+default['firezone']['authentication']['auto_create_oidc_users'] = true
+
 # OIDC Authentication
+#
+# Firezone can disable a user's VPN if there's any error detected trying
+ # to refresh their access_token. This is verified to work for Google, Okta, and
+ # Azure SSO and is used to automatically disconnect a user's VPN if they're removed
+ # from the OIDC provider. Leave this disabled if your OIDC provider
+ # has issues refreshing access tokens as it could unexpectedly interrupt a
+ # user's VPN session.
+default['firezone']['authentication']['disable_vpn_on_oidc_error'] = false
+
 # Any OpenID Connect provider can be used here.
 default['firezone']['authentication']['oidc'] = {}
 # Example of a Google setup
@@ -313,7 +327,7 @@ default['firezone']['wireguard']['interface_name'] = 'wg-firezone'
 default['firezone']['wireguard']['port'] = 51_820
 
 # WireGuard interface MTU
-default['firezone']['wireguard']['mtu'] = 1420
+default['firezone']['wireguard']['mtu'] = 1280
 
 # WireGuard endpoint
 # By default, the public IP address of this server is used as the Endpoint

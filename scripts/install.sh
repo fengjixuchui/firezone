@@ -29,7 +29,8 @@ capture () {
             \"email\": \"$2\"
           }
         }" \
-        https://telemetry.firez.one/capture/ > /dev/null
+        https://telemetry.firez.one/capture/ > /dev/null \
+        || true
     fi
   fi
 }
@@ -97,17 +98,17 @@ mapReleaseToDistro() {
      image_sub_string="fedora34-x64"
   elif [[ "$hostinfo" =~ .*"Fedora 34".*           &&  "$hostinfo" =~ .*"arm64" ]]; then
      image_sub_string="fedora34-arm64"
-  elif [[ "$hostinfo" =~ .*"Fedora Linux 35".*     &&  "$hostinfo" =~ .*"x86" ]]; then
+  elif [[ "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*     &&  "$hostinfo" =~ .*"x86" ]]; then
      image_sub_string="fedora35-x64"
-  elif [[ "$hostinfo" =~ .*"Fedora Linux 35".*     &&  "$hostinfo" =~ .*"arm64" ]]; then
+  elif [[ "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*     &&  "$hostinfo" =~ .*"arm64" ]]; then
      image_sub_string="fedora35-arm64"
   elif [[ "$hostinfo" =~ .*"Ubuntu 18.04".*        &&  "$hostinfo" =~ .*"x86" ]]; then
      image_sub_string="ubuntu1804-x64"
   elif [[ "$hostinfo" =~ .*"Ubuntu 18.04".*        &&  "$hostinfo" =~ .*"arm64" ]]; then
      image_sub_string="ubuntu1804-arm64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1)".04".*  &&  "$hostinfo" =~ .*"x86" ]]; then
+  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*  &&  "$hostinfo" =~ .*"x86" ]]; then
      image_sub_string="ubuntu2004-x64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1)".04".*  &&  "$hostinfo" =~ .*"arm64" ]]; then
+  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*  &&  "$hostinfo" =~ .*"arm64" ]]; then
      image_sub_string="ubuntu2004-arm64"
   elif [[ "$hostinfo" =~ .*"CentOS Linux 7".*      &&  "$hostinfo" =~ .*"x86" ]]; then
      image_sub_string="centos7-x64"

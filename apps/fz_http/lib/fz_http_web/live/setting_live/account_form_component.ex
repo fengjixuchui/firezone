@@ -1,6 +1,6 @@
 defmodule FzHttpWeb.SettingLive.AccountFormComponent do
   @moduledoc """
-  Handles the edit account form.
+  Handles the edit account form for admins.
   """
   use FzHttpWeb, :live_component
 
