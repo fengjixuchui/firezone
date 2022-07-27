@@ -1,12 +1,6 @@
 ---
-layout: default
 title: Upgrade
-nav_order: 3
-parent: Administer
-description: >
-  To upgrade Firezone, download the release package and run these commands.
-  We recommend keeping your Firezone installation up-to-date.
----
+sidebar_position: 3
 ---
 
 Upgrading Firezone will disconnect all VPN sessions and require shutting
@@ -15,15 +9,67 @@ anything goes wrong during the upgrade.
 
 To upgrade Firezone, follow these steps:
 
-1. Download the new release for your platform.
-1. Install the new package over the old one:
-  `sudo dpkg -i firezone_X.X.X.deb` or
-  `sudo rpm -i --force firezone_X.X.X.rpm` depending on your distribution.
+1. If not setup already, install our package repository based on your distro's
+    package format:
+    - [deb packages](https://cloudsmith.io/~firezone/repos/firezone/setup/#formats-deb)
+    - [rpm packages](https://cloudsmith.io/~firezone/repos/firezone/setup/#formats-rpm)
+1. Upgrade the `firezone` package using your distro's package manager.
 1. Run `firezone-ctl reconfigure` to pick up the new changes.
 1. Run `firezone-ctl restart` to restart services.
 
 Occasionally problems arise. If you hit any, please let us know by [filing an
 issue](https://github.com/firezone/firezone/issues/new/choose).
+
+## Upgrading from < 0.5.0 to >= 0.5.0
+
+### Overlapping egress rule destinations
+
+Firezone 0.5.0 removes the ability to add rules with overlapping destinations.
+When upgrading to 0.5.0, our migration script will automatically detect these
+cases and **keep only the rules whose destination encompasses the other rule**.
+If this is OK, **there is nothing you need to do**.
+
+Otherwise, we recommend modifying your ruleset to eliminate these cases before
+upgrading.
+
+### Preconfigured Okta and Google SSO
+
+Firezone 0.5.0 removes support for the old-style Okta and Google SSO
+configuration in favor of the new, more flexible OIDC-based configuration.
+If you have any configuration under the
+`default['firezone']['authentication']['okta']` or
+`default['firezone']['authentication']['google']` keys, **you need to migrate
+these to our OIDC-based configuration using the guide below.**
+
+#### Existing Google OAuth configuration
+
+Remove these lines containing the old Google OAuth configs from your configuration
+file located at `/etc/firezone/firezone.rb`
+
+```rb
+default['firezone']['authentication']['google']['enabled']
+default['firezone']['authentication']['google']['client_id']
+default['firezone']['authentication']['google']['client_secret']
+default['firezone']['authentication']['google']['redirect_uri']
+```
+
+Then, follow the instructions [here](../authenticate/google) to configure Google
+as an OIDC provider.
+
+#### Existing Okta OAuth configuration
+
+Remove these lines containing the old Okta OAuth configs from your configuration
+file located at `/etc/firezone/firezone.rb`
+
+```rb
+default['firezone']['authentication']['okta']['enabled']
+default['firezone']['authentication']['okta']['client_id']
+default['firezone']['authentication']['okta']['client_secret']
+default['firezone']['authentication']['okta']['site']
+```
+
+Then, follow the instructions [here](../authenticate/okta) to configure Okta as
+an OIDC provider.
 
 ## Upgrading from 0.3.x to >= 0.3.16
 
@@ -51,18 +97,18 @@ users authenticated through your OIDC provider.
 
 If this does not work, you will need to delete your existing OAuth app
 and repeat the OIDC setup steps to
-[create a new app integration]({%link docs/authenticate/index.md%}).
+[create a new app integration](../authenticate/) .
 
 ### I have an existing OAuth integration
 
 Prior to 0.3.11, Firezone used pre-configured OAuth2 providers. Follow the
-instructions [here]({%link docs/authenticate/index.md%}) to migrate
+instructions [here](../authenticate/) to migrate
 to OIDC.
 
 ### I have not integrated an identity provider
 
 No action needed. You can follow the instructions
-[here]({%link docs/authenticate/index.md%})
+[here](../authenticate/)
 to enable SSO through an OIDC provider.
 
 ## Upgrading from 0.3.1 to >= 0.3.2
@@ -74,11 +120,11 @@ default to `https://` + the FQDN of your server.
 
 Reminder, the configuration file can be found at `/etc/firezone/firezone.rb`.
 For an exhaustive list of configuration variables and their descriptions, see the
-[configuration file reference]({%link docs/reference/configuration-file.md%}).
+[configuration file reference](../reference/configuration-file).
 
 ## Upgrading from 0.2.x to 0.3.x
 
-**Note**: Starting with version 0.3.0, Firezone no longer stores device private
+Starting with version 0.3.0, Firezone no longer stores device private
 keys on the Firezone server. Any existing devices should continue to function
 as-is, but you will not be able to re-download or view these configurations in
 the Firezone Web UI.

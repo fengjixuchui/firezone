@@ -1,11 +1,6 @@
 ---
-layout: default
 title: nftables Firewall Template
-nav_order: 1
-parent: Firewall Templates
-description: >
-  nftables based firewall template that can be used with Firezone.
----
+sidebar_position: 1
 ---
 
 The following nftables firewall template can be used to secure the server
@@ -50,6 +45,8 @@ firezone-ctl restart phoenix
 ```
 
 #### Base Firewall Template
+
+<!-- markdownlint-disable MD013 -->
 
 ```shell
 #!/usr/sbin/nft -f
@@ -320,6 +317,8 @@ table inet nat {
 
 }
 ```
+
+<!-- markdownlint-enable MD013 -->
 
 #### Usage
 

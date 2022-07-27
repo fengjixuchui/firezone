@@ -40,21 +40,16 @@ egress_interface = System.get_env("EGRESS_INTERFACE") || get_egress_interface.()
 {fz_wall_cli_module, _} =
   Code.eval_string(System.get_env("FZ_WALL_CLI_MODULE", "FzWall.CLI.Sandbox"))
 
-{fz_vpn_wgadapter_module, _} =
-  Code.eval_string(System.get_env("FZ_VPN_WGADAPTER_MODULE", "FzVpn.Interface.WGAdapter.Sandbox"))
-
 config :fz_wall,
   nft_path: System.get_env("NFT_PATH", "nft"),
   egress_interface: egress_interface,
   cli: fz_wall_cli_module
 
 config :fz_vpn,
-  wg_adapter: fz_vpn_wgadapter_module
+  wireguard_private_key_path: "priv/wg_dev_private_key"
 
 # Auth
 local_auth_enabled = System.get_env("LOCAL_AUTH_ENABLED") == "true"
-okta_auth_enabled = System.get_env("OKTA_AUTH_ENABLED") == "true"
-google_auth_enabled = System.get_env("GOOGLE_AUTH_ENABLED") == "true"
 
 # Configure strategies
 identity_strategy =
@@ -65,33 +60,14 @@ identity_strategy =
       uid_field: :email
     ]}}
 
-okta_strategy = {:okta, {Ueberauth.Strategy.Okta, []}}
-google_strategy = {:google, {Ueberauth.Strategy.Google, []}}
-
 providers =
   [
-    {local_auth_enabled, identity_strategy},
-    {google_auth_enabled, google_strategy},
-    {okta_auth_enabled, okta_strategy}
+    {local_auth_enabled, identity_strategy}
   ]
   |> Enum.filter(fn {key, _val} -> key end)
   |> Enum.map(fn {_key, val} -> val end)
 
 config :ueberauth, Ueberauth, providers: providers
-
-if okta_auth_enabled do
-  config :ueberauth, Ueberauth.Strategy.Okta.OAuth,
-    client_id: System.get_env("OKTA_CLIENT_ID"),
-    client_secret: System.get_env("OKTA_CLIENT_SECRET"),
-    site: System.get_env("OKTA_SITE")
-end
-
-if google_auth_enabled do
-  config :ueberauth, Ueberauth.Strategy.Google.OAuth,
-    client_id: System.get_env("GOOGLE_CLIENT_ID"),
-    client_secret: System.get_env("GOOGLE_CLIENT_SECRET"),
-    redirect_uri: System.get_env("GOOGLE_REDIRECT_URI")
-end
 
 # ## SSL Support
 #
@@ -143,10 +119,10 @@ config :phoenix, :stacktrace_depth, 20
 config :phoenix, :plug_init_mode, :runtime
 
 config :fz_http,
+  private_clients: ["172.28.0.0/16"],
+  wireguard_allowed_ips: "172.28.0.0/16",
   cookie_secure: false,
   telemetry_module: FzCommon.MockTelemetry,
-  local_auth_enabled: local_auth_enabled,
-  okta_auth_enabled: google_auth_enabled,
-  google_auth_enabled: okta_auth_enabled
+  local_auth_enabled: local_auth_enabled
 
 config :fz_http, FzHttp.Mailer, adapter: Swoosh.Adapters.Local, from_email: "dev@firez.one"

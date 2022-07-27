@@ -122,7 +122,7 @@ default['firezone']['authentication']['oidc'] = {}
 #     discovery_document_uri: "https://accounts.google.com/.well-known/openid-configuration",
 #     client_id: "CLIENT_ID",
 #     client_secret: "CLIENT_SECRET",
-#     redirect_uri: "https://firezone.example.com/auth/oidc/google/callback",
+#     redirect_uri: "https://firezone.example.com/auth/oidc/google/callback/",
 #     response_type: "code",
 #     scope: "openid email profile",
 #     label: "Google"
@@ -135,29 +135,35 @@ default['firezone']['authentication']['oidc'] = {}
 #   }
 # }
 
-# DEPRECATED
-# Previously, Firezone used preconfigured Oauth2 providers. We've moved to OIDC authentication
-# which allows for any OpenID Connect provider (Google, Okta, Dex) to be used for authetication.
-# See the above OIDC Authentication section
+# ## Custom Reverse Proxy
 #
-# DEPRECATED: Okta example config
-default['firezone']['authentication']['okta']['enabled'] = false
-default['firezone']['authentication']['okta']['client_id'] = nil
-default['firezone']['authentication']['okta']['client_secret'] = nil
-default['firezone']['authentication']['okta']['site'] = 'https://your-domain.okta.com'
+# An array of IPs that Firezone will trust as reverse proxies.
+#
+# Read more here:
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For#selecting_an_ip_address
+#
+# By default the following IPs are included:
+# * IPv4: 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+# * IPv6: ::1/128, fc00::/7
+#
+# If any client requests will actually be coming from these private IPs, add them to
+# default['firezone']['phoenix']['private_clients'] below instead of here.
+#
+# If set to false Firezone will assume that it is not running behind a proxy
+default['firezone']['phoenix']['external_trusted_proxies'] = []
 
-# DEPRECATED: Google example config
-default['firezone']['authentication']['google']['enabled'] = false
-default['firezone']['authentication']['google']['client_id'] = nil
-default['firezone']['authentication']['google']['client_secret'] = nil
-default['firezone']['authentication']['google']['redirect_uri'] = nil
+# An array of IPs that Firezone will assume are clients, and thus, not a trusted
+# proxy for the purpose of determining the client's IP. By default the bundled
+# See more here: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-For#selecting_an_ip_address
+# This will supersede any proxy configured manually or by default by
+# default['firezone']['external_trusted_proxies']
+default['firezone']['phoenix']['private_clients'] = []
 
 # ## Nginx
 
 # These attributes control Firezone-specific portions of the Nginx
 # configuration and the virtual host for the Firezone Phoenix app.
 default['firezone']['nginx']['enabled'] = true
-default['firezone']['nginx']['force_ssl'] = true
 default['firezone']['nginx']['non_ssl_port'] = 80
 default['firezone']['nginx']['ssl_port'] = 443
 default['firezone']['nginx']['directory'] = "#{node['firezone']['var_directory']}/nginx/etc"
@@ -286,8 +292,20 @@ default['firezone']['database']['name'] = 'firezone'
 default['firezone']['database']['host'] = node['firezone']['postgresql']['listen_address']
 default['firezone']['database']['port'] = node['firezone']['postgresql']['port']
 default['firezone']['database']['ssl'] = false
+
+# SSL opts to pass to Erlang's SSL module. See a full listing at https://www.erlang.org/doc/man/ssl.html
+# Firezone supports the following subset:
+# {
+#   verify: :verify_peer, # or :verify_none
+#   cacerts: "...",       # The DER-encoded trusted certificates. Overrides :cacertfile if specified.
+#   cacertfile: "/path/to/cert.pem", # Path to a file containing PEM-encoded CA certificates.
+#   versions: ["tlsv1.1", "tlsv1.2", "tlsv1.3"], # Array of TLS versions to enable
+# }
 default['firezone']['database']['ssl_opts'] = {}
+
+# DB Connection Parameters to pass to the Postgrex driver. If you're unsure, leave this blank.
 default['firezone']['database']['parameters'] = {}
+
 default['firezone']['database']['pool'] = [10, Etc.nprocessors].max
 default['firezone']['database']['extensions'] = { 'plpgsql' => true, 'pg_trgm' => true }
 
@@ -309,6 +327,11 @@ default['firezone']['phoenix']['port'] = 13_000
 default['firezone']['phoenix']['log_directory'] = "#{node['firezone']['log_directory']}/phoenix"
 default['firezone']['phoenix']['log_rotation']['file_maxbytes'] = 104_857_600
 default['firezone']['phoenix']['log_rotation']['num_to_keep'] = 10
+
+# Toggle bringing down the web app for Firezone if a crash loop is detected.
+# When set to true, the web app will be brought down after 5 crashes.
+# When set to false, this will allow the web app to crash indefinitely.
+default['firezone']['phoenix']['crash_detection']['enabled'] = true
 
 # ## WireGuard
 
@@ -352,6 +375,9 @@ default['firezone']['wireguard']['persistent_keepalive'] = 0
 # Enable or disable IPv4 connectivity in your WireGuard network. Default enabled.
 default['firezone']['wireguard']['ipv4']['enabled'] = true
 
+# Enable or disable SNAT/Masquerade for packets leaving the WireGuard ipv4 tunnel. Default true.
+default['firezone']['wireguard']['ipv4']['masquerade'] = true
+
 # The CIDR-formatted IPv4 network to use for your WireGuard network. Default 10.3.2.0/24.
 default['firezone']['wireguard']['ipv4']['network'] = '10.3.2.0/24'
 
@@ -361,6 +387,9 @@ default['firezone']['wireguard']['ipv4']['address'] = '10.3.2.1'
 
 # Enable or disable IPv6 connectivity in your WireGuard network. Default enabled.
 default['firezone']['wireguard']['ipv6']['enabled'] = true
+
+# Enable or disable SNAT/Masquerade for packets leaving the WireGuard ipv6 tunnel. Default true.
+default['firezone']['wireguard']['ipv6']['masquerade'] = true
 
 # The CIDR-formatted IPv6 network to use for your WireGuard network. Default fd00::3:2:0/120.
 default['firezone']['wireguard']['ipv6']['network'] = 'fd00::3:2:0/120'
@@ -381,11 +410,33 @@ default['firezone']['runit']['svlogd_bin'] = "#{node['firezone']['install_direct
 
 default['firezone']['ssl']['directory'] = '/var/opt/firezone/ssl'
 
-# Enable / disable SSL
-default['firezone']['ssl']['enabled'] = true
+# Email to use for self signed certs and ACME cert issuance and renewal notices.
+# Defaults to default['firezone']['admin_email'] if nil.
+default['firezone']['ssl']['email_address'] = nil
 
-# Paths to the SSL certificate and key files. If these are not provided we will
-# attempt to generate a self-signed certificate and use that instead.
+# Enable / disable ACME protocol support to auto-provision SSL certificates.
+# Before turning this on, please ensure:
+# 1. default['firezone']['external_url'] includes a valid FQDN
+# 2. Port 80/tcp is accessible; this is used for domain validation.
+# 3. default['firezone']['ssl']['email_address'] is set properly. This will be used for renewal notices.
+# 4. default['firezone']['nginx']['non_ssl_port'] is set to 80
+default['firezone']['ssl']['acme']['enabled'] = false
+
+# Set the ACME server directory for ACME protocol SSL certificate issuance
+# This option requires default['firezone']['ssl']['acme']['enabled']
+# You can either set one of the CA short names as explained here (https://github.com/acmesh-official/acme.sh/wiki/Server)
+# or the directory URL.
+# In case ACME is enabled this option will default to letsencrypt
+default['firezone']['ssl']['acme']['server'] = 'letsencrypt'
+# Specify the key type and length for the cert. See more at https://github.com/acmesh-official/acme.sh#10-issue-ecc-certificates
+# Allowed values are:
+# * RSA: 2048, 3072, 4096, 8192
+# * ECDSA(recommended): ec-256, ec-384, ec-521
+default['firezone']['ssl']['acme']['keylength'] = 'ec-256'
+
+
+# Paths to the SSL certificate and key files. If these are set, ACME is automatically disabled.
+# If these are nil and ACME is disabled, we will attempt to generate a self-signed certificate and use that instead.
 default['firezone']['ssl']['certificate'] = nil
 default['firezone']['ssl']['certificate_key'] = nil
 
@@ -398,7 +449,6 @@ default['firezone']['ssl']['state_name'] = 'CA'
 default['firezone']['ssl']['locality_name'] = 'San Francisco'
 default['firezone']['ssl']['company_name'] = 'My Company'
 default['firezone']['ssl']['organizational_unit_name'] = 'Operations'
-default['firezone']['ssl']['email_address'] = 'you@example.com'
 
 # ### Cipher settings
 #
@@ -491,3 +541,9 @@ default['firezone']['connectivity_checks']['enabled'] = true
 # Amount of time to sleep between connectivity checks, in seconds.
 # Default: 3600 (1 hour). Minimum: 60 (1 minute). Maximum: 86400 (1 day).
 default['firezone']['connectivity_checks']['interval'] = 3_600
+
+# ## Cookies settings
+
+# Enable or disable the secure attributes for Firezone cookies. It's highly
+# recommended you leave this enabled unless you know what you're doing.
+default['firezone']['phoenix']['secure_cookies'] = true

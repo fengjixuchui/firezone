@@ -9,6 +9,7 @@ defmodule FzHttpWeb.UserLive.Show do
   alias FzHttpWeb.ErrorHelpers
 
   @impl Phoenix.LiveView
+
   def mount(%{"id" => user_id} = _params, _session, socket) do
     user = Users.get_user!(user_id)
     devices = Devices.list_devices(user)
@@ -20,7 +21,8 @@ defmodule FzHttpWeb.UserLive.Show do
      |> assign(:device_config, socket.assigns[:device_config])
      |> assign(:connections, connections)
      |> assign(:user, user)
-     |> assign(:page_title, "Users")}
+     |> assign(:page_title, "Users")
+     |> assign(:rules_path, Routes.rule_index_path(socket, :index))}
   end
 
   @doc """
@@ -48,6 +50,7 @@ defmodule FzHttpWeb.UserLive.Show do
       case Users.delete_user(user) do
         {:ok, _} ->
           for device <- user.devices, do: @events_module.delete_device(device)
+          @events_module.delete_user(user)
           FzHttpWeb.Endpoint.broadcast("users_socket:#{user.id}", "disconnect", %{})
 
           {:noreply,

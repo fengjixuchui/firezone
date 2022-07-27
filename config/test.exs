@@ -40,8 +40,6 @@ config :fz_http, FzHttpWeb.Endpoint,
 config :fz_http,
   mock_events_module_errors: false,
   local_auth_enabled: true,
-  google_auth_enabled: true,
-  okta_auth_enabled: true,
   telemetry_module: FzCommon.MockTelemetry,
   supervision_tree_mode: :test,
   connectivity_checks_interval: 86_400,
@@ -54,23 +52,32 @@ config :logger, level: :warn
 
 config :ueberauth, Ueberauth,
   providers: [
-    {:identity, {Ueberauth.Strategy.Identity, [callback_methods: ["POST"], uid_field: :email]}},
-    {:okta, {Ueberauth.Strategy.Okta, []}},
-    {:google, {Ueberauth.Strategy.Google, []}}
+    {:identity, {Ueberauth.Strategy.Identity, [callback_methods: ["POST"], uid_field: :email]}}
   ]
 
 # OIDC auth for testing
-config :fz_http, :openid_connect_providers, %{
-  google: [
-    discovery_document_uri: "https://accounts.google.com/.well-known/openid-configuration",
-    client_id: "CLIENT_ID",
-    client_secret: "CLIENT_SECRET",
-    redirect_uri: "https://firezone.example.com/auth/oidc/google/callback",
-    response_type: "code",
-    scope: "openid email profile",
-    label: "OIDC Google"
-  ]
+config :fz_http, :openid_connect_providers, """
+{
+  "google": {
+    "discovery_document_uri": "https://accounts.google.com/.well-known/openid-configuration",
+    "client_id": "CLIENT_ID",
+    "client_secret": "CLIENT_SECRET",
+    "redirect_uri": "https://firezone.example.com/auth/oidc/google/callback/",
+    "response_type": "code",
+    "scope": "openid email profile",
+    "label": "OIDC Google"
+  },
+  "okta": {
+    "discovery_document_uri": "https://<OKTA_DOMAIN>/.well-known/openid-configuration",
+    "client_id": "CLIENT_ID",
+    "client_secret": "CLIENT_SECRET",
+    "redirect_uri": "https://firezone.example.com/auth/oidc/okta/callback/",
+    "response_type": "code",
+    "scope": "openid email profile offline_access",
+    "label": "OIDC Okta"
+  }
 }
+"""
 
 # Provide mock for HTTPClient
 config :fz_http, :openid_connect, OpenIDConnect.Mock
@@ -78,5 +85,6 @@ config :fz_http, :openid_connect, OpenIDConnect.Mock
 config :fz_http, FzHttp.Mailer, adapter: Swoosh.Adapters.Test, from_email: "test@firez.one"
 
 config :fz_vpn,
-  # XXX: Bump test coverage by replacing this with a stubbed out module
-  stats_push_service_enabled: false
+  # XXX: Bump test coverage by adding a stubbed out module for FzVpn.StatsPushService
+  supervised_children: [FzVpn.Interface.WGAdapter.Sandbox, FzVpn.Server],
+  wg_adapter: FzVpn.Interface.WGAdapter.Sandbox

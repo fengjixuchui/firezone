@@ -7,6 +7,7 @@ capture () {
       telemetry_id=`cat /var/opt/firezone/cache/telemetry_id`
       if [ ! -z "$telemetry_id" ]; then
         curl -s -XPOST \
+          -m 5 \
           -H 'Content-Type: application/json' \
           -d "{
             \"api_key\": \"phc_ubuPhiqqjMdedpmbWpG2Ak3axqv5eMVhFDNBaXl9UZK\",
@@ -26,7 +27,8 @@ if [ $1 -eq "1" ]; then
     capture || true
   fi
 
-  if [ -e count ]; then
+  enabled=<%=node['firezone']['phoenix']['crash_detection']['enabled']%>
+  if $enabled && [ -e count ]; then
     count=`cat count`
     if [ $count -eq "5" ]; then
       rm -f count

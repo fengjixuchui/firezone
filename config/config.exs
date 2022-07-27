@@ -29,8 +29,13 @@ config :phoenix, :json_library, Jason
 git_sha =
   case System.get_env("GIT_SHA") do
     nil ->
-      {output, 0} = System.cmd("git", ["rev-parse", "--short", "HEAD"], stderr_to_stdout: true)
-      String.trim(output)
+      case System.cmd("git", ["rev-parse", "--short", "HEAD"], stderr_to_stdout: true) do
+        {output, 0} ->
+          String.trim(output)
+
+        {_error, _code} ->
+          "deadbeef"
+      end
 
     str ->
       str
@@ -48,6 +53,8 @@ config :fz_http, FzHttpWeb.Authentication,
   secret_key: "GApJ4c4a/KJLrBePgTDUk0n67AbjCvI9qdypKZEaJFXl6s9H3uRcIhTt49Fij5UO"
 
 config :fz_http,
+  external_trusted_proxies: [],
+  private_clients: [],
   disable_vpn_on_oidc_error: true,
   auto_create_oidc_users: true,
   sandbox: true,
@@ -80,11 +87,13 @@ config :fz_http,
   default_admin_password: "firezone1234",
   events_module: FzHttp.Events,
   server_process_opts: [name: {:global, :fz_http_server}],
-  openid_connect_providers: [],
+  openid_connect_providers: "{}",
   openid_connect: OpenIDConnect
 
 config :fz_wall,
   cli: FzWall.CLI.Sandbox,
+  wireguard_ipv4_masquerade: true,
+  wireguard_ipv6_masquerade: true,
   server_process_opts: [name: {:global, :fz_wall_server}],
   egress_interface: "dummy",
   wireguard_interface_name: "wg-firezone"
@@ -94,23 +103,23 @@ config :hammer,
 
 # This will be changed per-env
 config :fz_vpn,
+  wireguard_private_key_path: "dummy",
   stats_push_service_enabled: true,
-  wireguard_private_key_path: "priv/.wg_dummy_private_key",
   wireguard_interface_name: "wg-firezone",
-  wireguard_port: 51820,
+  wireguard_port: 51_820,
   wireguard_endpoint: "127.0.0.1",
-  wg_adapter: FzVpn.Interface.WGAdapter.Sandbox,
-  server_process_opts: [name: {:global, :fz_vpn_server}]
+  wg_adapter: FzVpn.Interface.WGAdapter.Live,
+  server_process_opts: [name: {:global, :fz_vpn_server}],
+  supervised_children: [FzVpn.Server, FzVpn.StatsPushService]
 
 config :fz_http, FzHttpWeb.Endpoint,
   render_errors: [view: FzHttpWeb.ErrorView, accepts: ~w(html json)],
-  pubsub_server: FzHttp.PubSub,
-  proxy_forwarded: false
+  pubsub_server: FzHttp.PubSub
 
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [:request_id, :remote_ip]
 
 # Configures the vault
 config :fz_http, FzHttp.Vault,

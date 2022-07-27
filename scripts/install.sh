@@ -20,6 +20,7 @@ capture () {
   if type curl > /dev/null; then
     if [ ! -z "$telemetry_id" ]; then
       curl -s -XPOST \
+        -m 5 \
         -H 'Content-Type: application/json' \
         -d "{
           \"api_key\": \"phc_ubuPhiqqjMdedpmbWpG2Ak3axqv5eMVhFDNBaXl9UZK\",
@@ -74,108 +75,70 @@ kernelCheck() {
   fi
 }
 
-# * determines distro; aborts if it can't detect or is not supported
-mapReleaseToDistro() {
-  hostinfo=`hostnamectl | egrep -i '(opera|arch)'`
-  image_sub_string=''
-  if [[ "$hostinfo" =~ .*"Debian GNU/Linux 10".*   && "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="debian10-x64"
-  elif [[ "$hostinfo" =~ .*"Debian GNU/Linux 10".* && "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="debian10-arm64"
-  elif [[ "$hostinfo" =~ .*"Debian GNU/Linux 11".* && "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="debian11-x64"
-  elif [[ "$hostinfo" =~ .*"Debian GNU/Linux 11".* &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="debian11-arm64"
-  elif [[ "$hostinfo" =~ .*"Amazon Linux 2".*      &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="amazonlinux2-x64"
-  elif [[ "$hostinfo" =~ .*"Amazon Linux 2".*      &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="amazonlinux2-arm64"
-  elif [[ "$hostinfo" =~ .*"Fedora 33".*           &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="fedora33-x64"
-  elif [[ "$hostinfo" =~ .*"Fedora 33".*           &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="fedora33-arm64"
-  elif [[ "$hostinfo" =~ .*"Fedora 34".*           &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="fedora34-x64"
-  elif [[ "$hostinfo" =~ .*"Fedora 34".*           &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="fedora34-arm64"
-  elif [[ "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*     &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="fedora35-x64"
-  elif [[ "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*     &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="fedora35-arm64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 18.04".*        &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="ubuntu1804-x64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 18.04".*        &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="ubuntu1804-arm64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*  &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="ubuntu2004-x64"
-  elif [[ "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*  &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="ubuntu2004-arm64"
-  elif [[ "$hostinfo" =~ .*"CentOS Linux 7".*      &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos7-x64"
-  elif [[ "$hostinfo" =~ .*"CentOS Stream 8".*     &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos8-x64"
-  elif [[ "$hostinfo" =~ .*"CentOS Stream 8".*     &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos8-arm64"
-  elif [[ "$hostinfo" =~ .*"CentOS Linux 8".*      &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos8-x64"
-  elif [[ "$hostinfo" =~ .*"CentOS Linux 8".*      &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos8-arm64"
-  elif [[ "$hostinfo" =~ .*"Rocky Linux 8".*       &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos8-x64"
-  elif [[ "$hostinfo" =~ .*"Rocky Linux 8".*       &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos8-arm64"
-  elif [[ "$hostinfo" =~ .*"AlmaLinux 8".*         &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos8-x64"
-  elif [[ "$hostinfo" =~ .*"AlmaLinux 8".*         &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos8-arm64"
-  elif [[ "$hostinfo" =~ .*"VzLinux 8".*           &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos8-x64"
-  elif [[ "$hostinfo" =~ .*"VzLinux 8".*           &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos8-arm64"
-  elif [[ "$hostinfo" =~ .*"CentOS Stream 9".*     &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="centos9-x64"
-  elif [[ "$hostinfo" =~ .*"CentOS Stream 9".*     &&  "$hostinfo" =~ .*"arm64" ]]; then
-     image_sub_string="centos9-arm64"
-  elif [[ "$hostinfo" =~ .*"openSUSE Leap 15".*    &&  "$hostinfo" =~ .*"x86" ]]; then
-     image_sub_string="opensuse15-x64"
-  fi
+# determines distro and sets up and installs from cloudsmith repo
+# aborts if it can't detect or is not supported
+setupCloudsmithRepoAndInstall() {
+  hostinfo=`hostnamectl | egrep -i 'opera'`
+  if [[ "$hostinfo" =~ .*"Debian GNU/Linux 10".* || \
+        "$hostinfo" =~ .*"Debian GNU/Linux 11".* || \
+        "$hostinfo" =~ .*"Ubuntu 18.04".*        || \
+        "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*
+     ]]
+  then
+    if [ ! -f /etc/apt/sources.list.d/firezone-firezone.list ]; then
+      setupCloudsmithRepo "deb"
+    else
+      apt-get -qqy update
+    fi
 
-  if [ -z "$image_sub_string" ]; then
+    apt-get install -y firezone
+  elif [[ "$hostinfo" =~ .*"Amazon Linux 2".*                   || \
+          "$hostinfo" =~ .*"Fedora 33".*                        || \
+          "$hostinfo" =~ .*"Fedora 34".*                        || \
+          "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*              || \
+          "$hostinfo" =~ .*"CentOS Linux 7".*                   || \
+          "$hostinfo" =~ .*"CentOS Stream 8".*                  || \
+          "$hostinfo" =~ .*"CentOS Linux 8".*                   || \
+          "$hostinfo" =~ .*"CentOS Stream 9".*                  || \
+          "$hostinfo" =~ .*"Oracle Linux Server "(7|8|9).*      || \
+          "$hostinfo" =~ .*"Red Hat Enterprise Linux "(7|8|9).* || \
+          "$hostinfo" =~ .*"Rocky Linux 8".*                    || \
+          "$hostinfo" =~ .*"AlmaLinux 8".*                      || \
+          "$hostinfo" =~ .*"VzLinux 8".*
+       ]]
+  then
+    if [ ! -f /etc/yum.repos.d/firezone-firezone.repo ]; then
+      setupCloudsmithRepo "rpm"
+    fi
+
+    yum install -y firezone
+  elif [[ "$hostinfo" =~ .*"openSUSE Leap 15".* ]]
+  then
+    if ! zypper lr | grep firezone-firezone; then
+      setupCloudsmithRepo "rpm"
+    else
+      zypper --non-interactive --quiet ref firezone-firezone
+    fi
+
+    zypper --non-interactive install -y firezone
+  else
     echo "Did not detect a supported Linux distribution. Try using the manual installation method using a release package from a similar distribution. Aborting."
     exit
   fi
-
-  latest_release=`
-    curl --silent https://api.github.com/repos/firezone/firezone/releases/latest |
-    grep browser_download_url |
-    cut -d: -f2,3 |
-    sed 's/\"//g' |
-    grep $image_sub_string
-  `
-  echo "url: "$latest_release
-  eval "$1='$latest_release'" # return url to 1st param
 }
 
-installAndDownloadArtifact() {
-  url=$1
-  file=`basename $url`
-  echo "Downloading: $url"
-  cd /tmp
-  curl --progress-bar -L $url --output $file
-  echo "Installing: $file"
-  if [[ "$url" =~ .*"deb".* ]]; then
-    sudo dpkg -i $file
-  else
-    sudo rpm -i --force $file
-  fi
+setupCloudsmithRepo() {
+  curl -1sLf \
+    "https://dl.cloudsmith.io/public/firezone/firezone/setup.$1.sh" \
+    | bash
 }
 
 firezoneSetup() {
   conf="/opt/firezone/embedded/cookbooks/firezone/attributes/default.rb"
-  sudo sed -i "s/firezone@localhost/$1/" $conf
-  sudo sed -i "s/default\['firezone']\['external_url'].*/default['firezone']['external_url'] = 'https:\/\/$public_ip'/" $conf
-  sudo firezone-ctl reconfigure
-  sudo firezone-ctl create-or-reset-admin
+  sed -i "s/firezone@localhost/$1/" $conf
+  sed -i "s/default\['firezone']\['external_url'].*/default['firezone']['external_url'] = 'https:\/\/$public_ip'/" $conf
+  firezone-ctl reconfigure
+  firezone-ctl create-or-reset-admin
 }
 
 main() {
@@ -184,11 +147,9 @@ main() {
   wireguardCheck
   promptEmail "Enter the administrator email you'd like to use for logging into this Firezone instance:"
   promptContact
-  releaseUrl=''
-  mapReleaseToDistro releaseUrl
   echo "Press <ENTER> to install or Ctrl-C to abort."
   read
-  installAndDownloadArtifact $releaseUrl
+  setupCloudsmithRepoAndInstall
   firezoneSetup $adminUser
 }
 
@@ -196,7 +157,7 @@ osCheck
 curlCheck
 
 telemetry_id=`od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo`
-public_ip=`curl --silent ifconfig.me`
+public_ip=`curl -m 5 --silent ifconfig.me`
 
 capture "install" "email-not-collected@dummy.domain"
 

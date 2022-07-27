@@ -61,6 +61,7 @@ defmodule FzHttpWeb.Router do
     get "/:provider/callback", AuthController, :callback
     post "/:provider/callback", AuthController, :callback
     get "/oidc/:provider/callback", AuthController, :callback, as: :auth_oidc
+    get "/oidc/:provider", AuthController, :redirect_oidc_auth_uri, as: :auth_oidc
   end
 
   # Unauthenticated routes
@@ -158,15 +159,19 @@ defmodule FzHttpWeb.Router do
       live "/settings/account", SettingLive.Account, :show
       live "/settings/account/edit", SettingLive.Account, :edit
       live "/settings/account/register_mfa", SettingLive.Account, :register_mfa
+      live "/settings/customization", SettingLive.Customization, :show
       live "/diagnostics/connectivity_checks", ConnectivityCheckLive.Index, :index
     end
   end
 
   if Mix.env() == :dev do
+    import Phoenix.LiveDashboard.Router
+
     scope "/dev" do
       pipe_through [:browser]
 
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+      live_dashboard "/dashboard"
     end
   end
 end

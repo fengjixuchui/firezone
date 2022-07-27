@@ -3,6 +3,28 @@ defmodule FzHttp.RulesTest do
 
   alias FzHttp.Rules
 
+  describe "list_rules/0" do
+    setup [:create_rules]
+
+    test "lists all Rules", %{rules: rules} do
+      assert length(rules) == length(Rules.list_rules())
+    end
+  end
+
+  describe "list_rules/1" do
+    setup [:create_rule_with_user_and_device]
+
+    test "list Rules scoped by user", %{user: user, rule: rule} do
+      assert Rules.list_rules(user.id) == [rule]
+    end
+
+    test "Deleting user deletes rule", %{user: user, rule: rule} do
+      assert rule in Rules.list_rules()
+      FzHttp.Users.delete_user(user)
+      assert rule not in Rules.list_rules()
+    end
+  end
+
   describe "get_rule!/1" do
     setup [:create_rule]
 
@@ -28,6 +50,7 @@ defmodule FzHttp.RulesTest do
       {:ok, rule} = Rules.create_rule(%{destination: "::1"})
       assert !is_nil(rule.id)
       assert rule.action == :drop
+      assert rule.user_id == nil
     end
 
     test "prevents invalid CIDRs" do
@@ -50,22 +73,6 @@ defmodule FzHttp.RulesTest do
     end
   end
 
-  describe "to_nftables/0" do
-    setup [:create_rules]
-
-    @nftables_rules [
-      {"1.1.1.0/24", :drop},
-      {"2.2.2.0/24", :drop},
-      {"3.3.3.0/24", :drop},
-      {"4.4.4.0/24", :drop},
-      {"5.5.5.0/24", :drop}
-    ]
-
-    test "prints all rules to nftables format", %{rules: _rules} do
-      assert @nftables_rules == Rules.to_nftables()
-    end
-  end
-
   describe "allowlist/0" do
     setup [:create_accept_rule]
 
@@ -82,23 +89,22 @@ defmodule FzHttp.RulesTest do
     end
   end
 
-  describe "nftables_spec/1 IPv4" do
-    setup [:create_rule4]
+  describe "setting_projection/1" do
+    setup [:create_rule_with_user_and_device]
 
-    @ipv4tables_spec {"10.10.10.0/24", :drop}
-
-    test "returns IPv4 tuple", %{rule4: rule} do
-      assert @ipv4tables_spec = Rules.nftables_spec(rule)
+    test "projects expected fields", %{rule: rule, user: user} do
+      user_id = user.id
+      assert %{destination: "10.20.30.0/24", user_id: ^user_id} = Rules.setting_projection(rule)
     end
   end
 
-  describe "nftables_spec/1 IPv6" do
-    setup [:create_rule6]
+  describe "as_settings/0" do
+    setup [:create_rules]
 
-    @ipv6tables_spec {"::/0", :drop}
+    test "Maps rules to projections", %{rules: rules} do
+      expected_rules = Enum.map(rules, &Rules.setting_projection/1) |> MapSet.new()
 
-    test "returns IPv6 tuple", %{rule6: rule} do
-      assert @ipv6tables_spec = Rules.nftables_spec(rule)
+      assert Rules.as_settings() == expected_rules
     end
   end
 end

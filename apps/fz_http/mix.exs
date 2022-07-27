@@ -16,7 +16,7 @@ defmodule FzHttp.MixProject do
       lockfile: "../../mix.lock",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      compilers: Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -39,7 +39,6 @@ defmodule FzHttp.MixProject do
       extra_applications: [
         :logger,
         :runtime_tools,
-        :ueberauth_okta,
         :ueberauth_identity
       ],
       registered: [:fz_http_server]
@@ -67,8 +66,6 @@ defmodule FzHttp.MixProject do
       {:guardian_db, "~> 2.0"},
       {:openid_connect, "~> 0.2.2"},
       {:ueberauth, "~> 0.7"},
-      {:ueberauth_google, "~> 0.10"},
-      {:ueberauth_okta, "~> 0.2"},
       {:ueberauth_identity, "~> 0.4"},
       {:httpoison, "~> 1.8"},
       {:argon2_elixir, "~> 2.0"},
@@ -80,10 +77,11 @@ defmodule FzHttp.MixProject do
       {:hammer_plug, "~> 2.1"},
       {:inflex, "~> 2.1"},
       {:plug, "~> 1.13"},
-      {:postgrex, "~> 0.15.10"},
-      {:phoenix_html, "~> 3.1.0"},
+      {:postgrex, "~> 0.16"},
+      {:phoenix_html, "~> 3.2"},
       {:phoenix_live_reload, "~> 1.3", only: :dev},
-      {:phoenix_live_view, "~> 0.17.5"},
+      {:phoenix_live_view, "~> 0.17"},
+      {:phoenix_live_dashboard, "~> 0.6"},
       {:gettext, "~> 0.18"},
       {:jason, "~> 1.2"},
       {:phoenix_swoosh, "~> 1.0"},
@@ -93,7 +91,8 @@ defmodule FzHttp.MixProject do
       {:cidr, github: "firezone/cidr-elixir"},
       {:telemetry, "~> 1.0"},
       {:plug_cowboy, "~> 2.5"},
-      {:credo, "~> 1.5", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.5", only: [:dev, :test], runtime: false},
+      {:remote_ip, "~> 1.0"}
     ]
   end
 

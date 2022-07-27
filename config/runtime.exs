@@ -8,17 +8,14 @@ import Config
 alias FzCommon.{CLI, FzInteger, FzString}
 
 # external_url is important
-external_url = System.get_env("EXTERNAL_URL", "http://localhost:4000")
-
-# Enable Forwarded headers, e.g 'X-FORWARDED-HOST'
-proxy_forwarded = FzString.to_boolean(System.get_env("PROXY_FORWARDED") || "false")
+external_url = System.get_env("EXTERNAL_URL", "https://localhost")
+config :fz_http, :external_url, external_url
 
 %{host: host, path: path, port: port, scheme: scheme} = URI.parse(external_url)
 
 config :fz_http, FzHttpWeb.Endpoint,
   url: [host: host, scheme: scheme, port: port, path: path],
-  check_origin: ["//127.0.0.1", "//localhost", "//#{host}"],
-  proxy_forwarded: proxy_forwarded
+  check_origin: ["//127.0.0.1", "//localhost", "//#{host}"]
 
 # Formerly releases.exs - Only evaluated in production
 if config_env() == :prod do
@@ -33,6 +30,9 @@ if config_env() == :prod do
   database_parameters = Jason.decode!(System.fetch_env!("DATABASE_PARAMETERS"))
   phoenix_listen_address = System.fetch_env!("PHOENIX_LISTEN_ADDRESS")
   phoenix_port = String.to_integer(System.fetch_env!("PHOENIX_PORT"))
+  external_trusted_proxies = Jason.decode!(System.fetch_env!("EXTERNAL_TRUSTED_PROXIES"))
+  private_clients = Jason.decode!(System.fetch_env!("PRIVATE_CLIENTS"))
+
   admin_email = System.fetch_env!("ADMIN_EMAIL")
   default_admin_password = System.fetch_env!("DEFAULT_ADMIN_PASSWORD")
   wireguard_private_key_path = System.fetch_env!("WIREGUARD_PRIVATE_KEY_PATH")
@@ -44,6 +44,8 @@ if config_env() == :prod do
   wireguard_allowed_ips = System.fetch_env!("WIREGUARD_ALLOWED_IPS")
   wireguard_persistent_keepalive = System.fetch_env!("WIREGUARD_PERSISTENT_KEEPALIVE")
   wireguard_ipv4_enabled = FzString.to_boolean(System.fetch_env!("WIREGUARD_IPV4_ENABLED"))
+  wireguard_ipv4_masquerade = FzString.to_boolean(System.fetch_env!("WIREGUARD_IPV4_MASQUERADE"))
+  wireguard_ipv6_masquerade = FzString.to_boolean(System.fetch_env!("WIREGUARD_IPV6_MASQUERADE"))
   wireguard_ipv4_network = System.fetch_env!("WIREGUARD_IPV4_NETWORK")
   wireguard_ipv4_address = System.fetch_env!("WIREGUARD_IPV4_ADDRESS")
   wireguard_ipv6_enabled = FzString.to_boolean(System.fetch_env!("WIREGUARD_IPV6_ENABLED"))
@@ -56,6 +58,7 @@ if config_env() == :prod do
   guardian_secret_key = System.fetch_env!("GUARDIAN_SECRET_KEY")
   disable_vpn_on_oidc_error = FzString.to_boolean(System.fetch_env!("DISABLE_VPN_ON_OIDC_ERROR"))
   auto_create_oidc_users = FzString.to_boolean(System.fetch_env!("AUTO_CREATE_OIDC_USERS"))
+  secure = FzString.to_boolean(System.get_env("SECURE_COOKIES", "true"))
 
   allow_unprivileged_device_management =
     FzString.to_boolean(System.fetch_env!("ALLOW_UNPRIVILEGED_DEVICE_MANAGEMENT"))
@@ -73,18 +76,6 @@ if config_env() == :prod do
 
   # Local auth
   local_auth_enabled = FzString.to_boolean(System.fetch_env!("LOCAL_AUTH_ENABLED"))
-
-  # Okta auth
-  okta_auth_enabled = FzString.to_boolean(System.fetch_env!("OKTA_AUTH_ENABLED"))
-  okta_client_id = System.get_env("OKTA_CLIENT_ID")
-  okta_client_secret = System.get_env("OKTA_CLIENT_SECRET")
-  okta_site = System.get_env("OKTA_SITE")
-
-  # Google auth
-  google_auth_enabled = FzString.to_boolean(System.fetch_env!("GOOGLE_AUTH_ENABLED"))
-  google_client_id = System.get_env("GOOGLE_CLIENT_ID")
-  google_client_secret = System.get_env("GOOGLE_CLIENT_SECRET")
-  google_redirect_uri = System.get_env("GOOGLE_REDIRECT_URI")
 
   max_devices_per_user =
     System.fetch_env!("MAX_DEVICES_PER_USER")
@@ -113,13 +104,33 @@ if config_env() == :prod do
   live_view_signing_salt = System.fetch_env!("LIVE_VIEW_SIGNING_SALT")
   cookie_signing_salt = System.fetch_env!("COOKIE_SIGNING_SALT")
   cookie_encryption_salt = System.fetch_env!("COOKIE_ENCRYPTION_SALT")
+  cookie_secure = secure
 
   # Password is not needed if using bundled PostgreSQL, so use nil if it's not set.
   database_password = System.get_env("DATABASE_PASSWORD")
 
   # XXX: Using to_atom here because this is trusted input and to_existing_atom
-  # won't work because we won't know the keys ahead of time.
-  ssl_opts = Keyword.new(database_ssl_opts, fn {k, v} -> {String.to_atom(k), v} end)
+  # won't work because we won't know the keys ahead of time. Hardcoding supported
+  # ssl_opts as well.
+  map_ssl_opt_val = fn k, v ->
+    case k do
+      "verify" ->
+        # verify expects an atom
+        String.to_atom(v)
+
+      "versions" ->
+        # versions expects a list of atoms
+        Enum.map(v, &String.to_atom(&1))
+
+      _ ->
+        # Everything else is usually a string
+        v
+    end
+  end
+
+  ssl_opts =
+    Keyword.new(database_ssl_opts, fn {k, v} -> {String.to_atom(k), map_ssl_opt_val.(k, v)} end)
+
   parameters = Keyword.new(database_parameters, fn {k, v} -> {String.to_atom(k), v} end)
 
   # Database configuration
@@ -170,6 +181,8 @@ if config_env() == :prod do
     ]
 
   config :fz_wall,
+    wireguard_ipv4_masquerade: wireguard_ipv4_masquerade,
+    wireguard_ipv6_masquerade: wireguard_ipv6_masquerade,
     nft_path: nft_path,
     egress_interface: egress_interface,
     wireguard_interface_name: wireguard_interface_name,
@@ -186,15 +199,16 @@ if config_env() == :prod do
     secret_key: guardian_secret_key
 
   config :fz_http,
+    external_trusted_proxies: external_trusted_proxies,
+    private_clients: private_clients,
     disable_vpn_on_oidc_error: disable_vpn_on_oidc_error,
     auto_create_oidc_users: auto_create_oidc_users,
     cookie_signing_salt: cookie_signing_salt,
     cookie_encryption_salt: cookie_encryption_salt,
+    cookie_secure: cookie_secure,
     allow_unprivileged_device_management: allow_unprivileged_device_management,
     max_devices_per_user: max_devices_per_user,
     local_auth_enabled: local_auth_enabled,
-    okta_auth_enabled: okta_auth_enabled,
-    google_auth_enabled: google_auth_enabled,
     wireguard_dns: wireguard_dns,
     wireguard_allowed_ips: wireguard_allowed_ips,
     wireguard_persistent_keepalive: wireguard_persistent_keepalive,
@@ -223,58 +237,19 @@ if config_env() == :prod do
         uid_field: :email
       ]}}
 
-  okta_strategy = {:okta, {Ueberauth.Strategy.Okta, []}}
-  google_strategy = {:google, {Ueberauth.Strategy.Google, []}}
-
   providers =
     [
-      {local_auth_enabled, identity_strategy},
-      {google_auth_enabled, google_strategy},
-      {okta_auth_enabled, okta_strategy}
+      {local_auth_enabled, identity_strategy}
     ]
     |> Enum.filter(fn {key, _val} -> key end)
     |> Enum.map(fn {_key, val} -> val end)
 
   config :ueberauth, Ueberauth, providers: providers
-
-  # Configure OAuth portion of enabled strategies
-  if okta_auth_enabled do
-    config :ueberauth, Ueberauth.Strategy.Okta.OAuth,
-      client_id: okta_client_id,
-      client_secret: okta_client_secret,
-      site: okta_site
-  end
-
-  if google_auth_enabled do
-    config :ueberauth, Ueberauth.Strategy.Google.OAuth,
-      client_id: google_client_id,
-      client_secret: google_client_secret,
-      redirect_uri: google_redirect_uri
-  end
 end
 
 # OIDC Auth
 auth_oidc_env = System.get_env("AUTH_OIDC")
 
 if config_env() != :test && auth_oidc_env do
-  auth_oidc =
-    Jason.decode!(auth_oidc_env)
-    # Convert Map to something openid_connect expects, atomic keyed configs
-    # eg. [provider: [client_id: "CLIENT_ID" ...]]
-    |> Enum.map(fn {provider, settings} ->
-      {
-        String.to_atom(provider),
-        [
-          discovery_document_uri: settings["discovery_document_uri"],
-          client_id: settings["client_id"],
-          client_secret: settings["client_secret"],
-          redirect_uri: "#{external_url}/auth/oidc/#{provider}/callback/",
-          response_type: settings["response_type"],
-          scope: settings["scope"],
-          label: settings["label"]
-        ]
-      }
-    end)
-
-  config :fz_http, :openid_connect_providers, auth_oidc
+  config :fz_http, :openid_connect_providers, auth_oidc_env
 end

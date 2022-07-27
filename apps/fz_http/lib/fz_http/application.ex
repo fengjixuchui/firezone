@@ -25,19 +25,18 @@ defmodule FzHttp.Application do
   defp children, do: children(Application.fetch_env!(:fz_http, :supervision_tree_mode))
 
   defp children(:full) do
-    # Pull in OpenIDConnect config if available
-    openid_connect_providers = Application.get_env(:fz_http, :openid_connect_providers)
-
     [
       FzHttp.Server,
       FzHttp.Repo,
       FzHttp.Vault,
+      FzHttp.Conf.Cache,
       FzHttpWeb.Endpoint,
       {Phoenix.PubSub, name: FzHttp.PubSub},
       FzHttpWeb.Presence,
       FzHttp.ConnectivityCheckService,
+      FzHttp.TelemetryPingService,
       FzHttp.VpnSessionScheduler,
-      {OpenIDConnect.Worker, openid_connect_providers},
+      FzHttp.OIDC.StartProxy,
       {DynamicSupervisor, name: FzHttp.RefresherSupervisor, strategy: :one_for_one},
       FzHttp.OIDC.RefreshManager
     ]
@@ -48,7 +47,9 @@ defmodule FzHttp.Application do
       FzHttp.Server,
       FzHttp.Repo,
       FzHttp.Vault,
+      FzHttp.Conf.Cache,
       FzHttpWeb.Endpoint,
+      {FzHttp.OIDC.StartProxy, :test},
       {Phoenix.PubSub, name: FzHttp.PubSub},
       FzHttpWeb.Presence
     ]

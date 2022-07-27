@@ -1,11 +1,6 @@
 ---
-layout: default
 title: Security Considerations
-nav_order: 6
-parent: Administer
-description: >
-  Security considerations in production deployments.
----
+sidebar_position: 6
 ---
 
 **Disclaimer**: Firezone is still beta software. The codebase has not yet
@@ -20,6 +15,7 @@ Shown below is a table of ports used by Firezone services.
 <!-- markdownlint-disable MD013 -->
 
 | Service | Default port | Listen address | Description |
+| ------ | --------- | ------- | --------- |
 | Nginx | `80` `443` | `all` | Public HTTP(S) port for administering Firezone and facilitating authentication. |
 | WireGuard | `51820` | `all` | Public WireGuard port used for VPN sessions. |
 | Postgresql | `15432` | `127.0.0.1` | Local-only port used for bundled Postgresql server. |
@@ -59,8 +55,10 @@ Anywhere                   ALLOW IN    10.3.2.2
 This would leave only `22/tcp` exposed for SSH access to manage the server (optional),
 and `51820/udp` exposed in order to establish WireGuard tunnels.
 
-**Note**: This type of configuration has not been fully tested with SSO
+:::note
+This type of configuration has not been fully tested with SSO
 authentication and may it to break or behave unexpectedly.
+:::
 
 ## Reporting Security Issues
 

@@ -225,6 +225,8 @@ class Firezone
         'DATABASE_PARAMETERS' => attributes['database']['parameters'].to_json,
         'PHOENIX_LISTEN_ADDRESS' => attributes['phoenix']['listen_address'].to_s,
         'PHOENIX_PORT' => attributes['phoenix']['port'].to_s,
+        'EXTERNAL_TRUSTED_PROXIES' => Chef::JSONCompat.to_json(attributes['phoenix']['external_trusted_proxies']),
+        'PRIVATE_CLIENTS' => Chef::JSONCompat.to_json(attributes['phoenix']['private_clients']),
         'EXTERNAL_URL' => attributes['external_url'] || fqdn_url,
         'ADMIN_EMAIL' => attributes['admin_email'],
         'WIREGUARD_INTERFACE_NAME' => attributes['wireguard']['interface_name'],
@@ -235,13 +237,16 @@ class Firezone
         'WIREGUARD_ALLOWED_IPS' => attributes['wireguard']['allowed_ips'].to_s,
         'WIREGUARD_PERSISTENT_KEEPALIVE' => attributes['wireguard']['persistent_keepalive'].to_s,
         'WIREGUARD_IPV4_ENABLED' => attributes['wireguard']['ipv4']['enabled'].to_s,
+        'WIREGUARD_IPV4_MASQUERADE' => attributes['wireguard']['ipv4']['masquerade'].to_s,
         'WIREGUARD_IPV4_NETWORK' => attributes['wireguard']['ipv4']['network'],
         'WIREGUARD_IPV4_ADDRESS' => attributes['wireguard']['ipv4']['address'],
+        'WIREGUARD_IPV6_MASQUERADE' => attributes['wireguard']['ipv6']['masquerade'].to_s,
         'WIREGUARD_IPV6_ENABLED' => attributes['wireguard']['ipv6']['enabled'].to_s,
         'WIREGUARD_IPV6_NETWORK' => attributes['wireguard']['ipv6']['network'],
         'WIREGUARD_IPV6_ADDRESS' => attributes['wireguard']['ipv6']['address'],
         'MAX_DEVICES_PER_USER' => attributes['max_devices_per_user'].to_s,
         'ALLOW_UNPRIVILEGED_DEVICE_MANAGEMENT' => attributes['allow_unprivileged_device_management'].to_s,
+
         # Allow env var to override config
         'TELEMETRY_ENABLED' => ENV.fetch('TELEMETRY_ENABLED',
                                          attributes['telemetry']['enabled'] == false ? 'false' : 'true'),
@@ -260,14 +265,6 @@ class Firezone
 
         # Auth
         'LOCAL_AUTH_ENABLED' => attributes['authentication']['local']['enabled'].to_s,
-        'OKTA_AUTH_ENABLED' => attributes['authentication']['okta']['enabled'].to_s,
-        'OKTA_CLIENT_ID' => attributes['authentication']['okta']['client_id'],
-        'OKTA_CLIENT_SECRET' => attributes['authentication']['okta']['client_secret'],
-        'OKTA_SITE' => attributes['authentication']['okta']['site'],
-        'GOOGLE_AUTH_ENABLED' => attributes['authentication']['google']['enabled'].to_s,
-        'GOOGLE_CLIENT_ID' => attributes['authentication']['google']['client_id'],
-        'GOOGLE_CLIENT_SECRET' => attributes['authentication']['google']['client_secret'],
-        'GOOGLE_REDIRECT_URI' => attributes['authentication']['google']['redirect_uri'],
 
         'DISABLE_VPN_ON_OIDC_ERROR' => attributes['authentication']['disable_vpn_on_oidc_error'].to_s,
         'AUTO_CREATE_OIDC_USERS' => attributes['authentication']['auto_create_oidc_users'].to_s,
@@ -281,7 +278,10 @@ class Firezone
         'LIVE_VIEW_SIGNING_SALT' => attributes['live_view_signing_salt'],
         'COOKIE_SIGNING_SALT' => attributes['cookie_signing_salt'],
         'COOKIE_ENCRYPTION_SALT' => attributes['cookie_encryption_salt'],
-        'DATABASE_ENCRYPTION_KEY' => attributes['database_encryption_key']
+        'DATABASE_ENCRYPTION_KEY' => attributes['database_encryption_key'],
+
+        # cookies
+        'SECURE_COOKIES' => attributes['phoenix']['secure_cookies'].to_s
       }
 
       env.merge!('DATABASE_PASSWORD' => attributes['database']['password']) if attributes.dig('database', 'password')
