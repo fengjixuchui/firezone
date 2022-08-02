@@ -72,7 +72,7 @@ const config = {
         items: [
           {
             href: "https://docs.firezone.dev/0.4.5",
-            label: "Old Documentation",
+            label: "Docs for older versions",
             position: "left",
             "aria-label": "Old Documentation",
           },
@@ -154,12 +154,14 @@ const config = {
         appId: "XXPZ9QVGFB",
 
         // Public API key: it is safe to commit it
-        apiKey: "8b06d6aa4f48c60daeacf9eaf79373f6",
+        apiKey: "66664e8765e1645ea0b500acebb0b0c2",
 
         indexName: "firezone",
 
         // Optional: see doc section below
-        contextualSearch: true,
+        // Requires more configuration and setup to work, so disabling. See
+        // https://discourse.algolia.com/t/algolia-searchbar-is-not-working-with-docusaurus-v2/14659/2
+        contextualSearch: false,
 
         // Optional: path for search page that enabled by default (`false` to disable it)
         searchPagePath: "search",
