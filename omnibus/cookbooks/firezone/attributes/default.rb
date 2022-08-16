@@ -45,6 +45,24 @@ default['firezone']['max_devices_per_user'] = 10
 # if you only want administrators to create and manage devices.
 default['firezone']['allow_unprivileged_device_management'] = true
 
+# Allow users to configure the following device fields when creating a device:
+# use_site_allowed_ips
+# allowed_ips
+# use_site_dns
+# dns
+# use_site_endpoint
+# endpoint
+# use_site_mtu
+# mtu
+# use_site_persistent_keepalive
+# persistent_keepalive
+# ipv4
+# ipv6
+#
+# If you only want users to modify the name and description for new devices,
+# disable this.
+default['firezone']['allow_unprivileged_device_configuration'] = true
+
 default['firezone']['config_directory'] = '/etc/firezone'
 default['firezone']['install_directory'] = '/opt/firezone'
 default['firezone']['app_directory'] = "#{node['firezone']['install_directory']}/embedded/service/firezone"
@@ -115,25 +133,29 @@ default['firezone']['authentication']['auto_create_oidc_users'] = true
 default['firezone']['authentication']['disable_vpn_on_oidc_error'] = false
 
 # Any OpenID Connect provider can be used here.
-default['firezone']['authentication']['oidc'] = {}
-# Example of a Google setup
+# Multiple OIDC configs can be added to the same Firezone instance.
+# This is an example using Google and Okta as an SSO identity provider.
 # default['firezone']['authentication']['oidc'] = {
 #   google: {
 #     discovery_document_uri: "https://accounts.google.com/.well-known/openid-configuration",
-#     client_id: "CLIENT_ID",
-#     client_secret: "CLIENT_SECRET",
+#     client_id: "<GOOGLE_CLIENT_ID>",
+#     client_secret: "<GOOGLE_CLIENT_SECRET>",
 #     redirect_uri: "https://firezone.example.com/auth/oidc/google/callback/",
 #     response_type: "code",
 #     scope: "openid email profile",
 #     label: "Google"
 #   },
 #   okta: {
-#   ...
-#   },
-#   azure: {
-#   ...
+#     discovery_document_uri: "https://<OKTA_DOMAIN>/.well-known/openid-configuration",
+#     client_id: "<OKTA_CLIENT_ID>",
+#     client_secret: "<OKTA_CLIENT_SECRET>",
+#     redirect_uri: "https://firezone.example.com/auth/oidc/okta/callback/",
+#     response_type: "code",
+#     scope: "openid email profile offline_access",
+#     label: "Okta"
 #   }
 # }
+default['firezone']['authentication']['oidc'] = {}
 
 # ## Custom Reverse Proxy
 #

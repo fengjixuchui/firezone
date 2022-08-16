@@ -59,6 +59,7 @@ config :fz_http,
   auto_create_oidc_users: true,
   sandbox: true,
   allow_unprivileged_device_management: true,
+  allow_unprivileged_device_configuration: true,
   telemetry_id: "543aae08-5a2b-428d-b704-2956dd3f5a57",
   wireguard_endpoint: nil,
   wireguard_dns: "1.1.1.1, 1.0.0.1",
@@ -95,7 +96,8 @@ config :fz_wall,
   wireguard_ipv6_masquerade: true,
   server_process_opts: [name: {:global, :fz_wall_server}],
   egress_interface: "dummy",
-  wireguard_interface_name: "wg-firezone"
+  wireguard_interface_name: "wg-firezone",
+  port_based_rules_supported: true
 
 config :hammer,
   backend: {Hammer.Backend.ETS, [expiry_ms: 60_000 * 60 * 4, cleanup_interval_ms: 60_000 * 10]}

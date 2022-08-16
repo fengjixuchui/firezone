@@ -51,7 +51,7 @@ const config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: require.resolve("./sidebars.js"),
-          editUrl: "https://github.com/firezone/firezone",
+          editUrl: "https://github.com/firezone/firezone/tree/master",
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
@@ -70,12 +70,6 @@ const config = {
           src: "img/logo.svg",
         },
         items: [
-          {
-            href: "https://docs.firezone.dev/0.4.5",
-            label: "Docs for older versions",
-            position: "left",
-            "aria-label": "Old Documentation",
-          },
           {
             href: "https://discourse.firez.one/",
             label: "Ask a Question",
@@ -168,9 +162,7 @@ const config = {
 
         //... other Algolia params
       },
-      themeConfig: {
-        metadata: [{name: 'keywords', content: 'wireguard, vpn, firewall, remote, network, documentation'}],
-      },
+      metadata: [{name: 'keywords', content: 'wireguard, vpn, firewall, remote access, network, documentation'}],
     }),
 };
 

@@ -5,7 +5,7 @@
 
 import Config
 
-alias FzCommon.{CLI, FzInteger, FzString}
+alias FzCommon.{CLI, FzInteger, FzString, FzKernelVersion}
 
 # external_url is important
 external_url = System.get_env("EXTERNAL_URL", "https://localhost")
@@ -16,6 +16,9 @@ config :fz_http, :external_url, external_url
 config :fz_http, FzHttpWeb.Endpoint,
   url: [host: host, scheme: scheme, port: port, path: path],
   check_origin: ["//127.0.0.1", "//localhost", "//#{host}"]
+
+config :fz_wall,
+  port_based_rules_supported: FzKernelVersion.is_version_greater_than?({5, 6, 8})
 
 # Formerly releases.exs - Only evaluated in production
 if config_env() == :prod do
@@ -62,6 +65,9 @@ if config_env() == :prod do
 
   allow_unprivileged_device_management =
     FzString.to_boolean(System.fetch_env!("ALLOW_UNPRIVILEGED_DEVICE_MANAGEMENT"))
+
+  allow_unprivileged_device_configuration =
+    FzString.to_boolean(System.fetch_env!("ALLOW_UNPRIVILEGED_DEVICE_CONFIGURATION"))
 
   # Outbound Email
   from_email = System.get_env("OUTBOUND_EMAIL_FROM")
@@ -207,6 +213,7 @@ if config_env() == :prod do
     cookie_encryption_salt: cookie_encryption_salt,
     cookie_secure: cookie_secure,
     allow_unprivileged_device_management: allow_unprivileged_device_management,
+    allow_unprivileged_device_configuration: allow_unprivileged_device_configuration,
     max_devices_per_user: max_devices_per_user,
     local_auth_enabled: local_auth_enabled,
     wireguard_dns: wireguard_dns,
