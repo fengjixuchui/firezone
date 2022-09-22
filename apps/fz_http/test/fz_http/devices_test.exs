@@ -1,13 +1,55 @@
 defmodule FzHttp.DevicesTest do
   # XXX: Update the device IP query to be an insert
   use FzHttp.DataCase, async: false
-  alias FzHttp.{Devices, Users}
+  alias FzHttp.Devices
+  alias FzHttp.DevicesFixtures
+  alias FzHttp.Users
+
+  describe "trimmed fields" do
+    test "trims expected fields" do
+      changeset =
+        Devices.new_device(%{
+          "allowed_ips" => " foo ",
+          "dns" => " foo ",
+          "endpoint" => " foo ",
+          "name" => " foo ",
+          "description" => " foo "
+        })
+
+      assert %Ecto.Changeset{
+               changes: %{
+                 allowed_ips: "foo",
+                 dns: "foo",
+                 endpoint: "foo",
+                 name: "foo",
+                 description: "foo"
+               }
+             } = changeset
+    end
+  end
 
   describe "count/0" do
     setup :create_devices
 
     test "counts devices", %{devices: devices} do
       assert length(devices) == Devices.count()
+    end
+  end
+
+  describe "count_active_within/1" do
+    @active_within 30
+
+    test "returns device count active within the last 30 seconds" do
+      DevicesFixtures.device(%{latest_handshake: DateTime.utc_now()})
+
+      assert Devices.count_active_within(@active_within) == 1
+    end
+
+    test "omits device active exceeding 30 seconds" do
+      latest_handshake = DateTime.add(DateTime.utc_now(), -31)
+      DevicesFixtures.device(%{latest_handshake: latest_handshake})
+
+      assert Devices.count_active_within(@active_within) == 0
     end
   end
 
@@ -82,32 +124,38 @@ defmodule FzHttp.DevicesTest do
       assert String.length(Devices.new_device().changes.preshared_key) == 44
     end
 
-    @tag ipv4_network: "10.3.2.0/30"
-    test "sets error when ipv4 address pool is exhausted", %{user: user} do
-      restore_env(:wireguard_ipv4_network, "10.3.2.0/30", &on_exit/1)
+    @tag ipv4_network: "10.3.2.0/30",
+         errors: [
+           ipv4: {"can't be blank", [validation: :required]},
+           base:
+             {"ipv4 address pool is exhausted. Increase network size or remove some devices.", []}
+         ]
+    test "sets error when ipv4 address pool is exhausted", %{
+      ipv4_network: ipv4_network,
+      user: user,
+      errors: errors
+    } do
+      restore_env(:wireguard_ipv4_network, ipv4_network, &on_exit/1)
 
-      assert {:error,
-              %Ecto.Changeset{
-                errors: [
-                  ipv4:
-                    {"address pool is exhausted. Increase network size or remove some devices.",
-                     []}
-                ]
-              }} = Devices.create_device(%{@device_attrs | user_id: user.id})
+      {:error, changeset} = Devices.create_device(%{@device_attrs | user_id: user.id})
+      assert errors == changeset.errors
     end
 
-    @tag ipv6_network: "fd00::3:2:0/126"
-    test "sets error when ipv6 address pool is exhausted", %{user: user} do
-      restore_env(:wireguard_ipv6_network, "fd00::3:2:0/126", &on_exit/1)
+    @tag ipv6_network: "fd00::3:2:0/126",
+         errors: [
+           ipv6: {"can't be blank", [validation: :required]},
+           base:
+             {"ipv6 address pool is exhausted. Increase network size or remove some devices.", []}
+         ]
+    test "sets error when ipv6 address pool is exhausted", %{
+      ipv6_network: ipv6_network,
+      user: user,
+      errors: errors
+    } do
+      restore_env(:wireguard_ipv6_network, ipv6_network, &on_exit/1)
 
-      assert {:error,
-              %Ecto.Changeset{
-                errors: [
-                  ipv6:
-                    {"address pool is exhausted. Increase network size or remove some devices.",
-                     []}
-                ]
-              }} = Devices.create_device(%{@device_attrs | user_id: user.id})
+      {:error, changeset} = Devices.create_device(%{@device_attrs | user_id: user.id})
+      assert errors == changeset.errors
     end
   end
 

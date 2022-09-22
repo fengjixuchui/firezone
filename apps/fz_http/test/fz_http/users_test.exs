@@ -3,6 +3,43 @@ defmodule FzHttp.UsersTest do
 
   alias FzHttp.{Repo, Users}
 
+  describe "count/0" do
+    setup :create_user
+
+    test "returns correct count of all users" do
+      assert Users.count() == 1
+    end
+  end
+
+  describe "count/1" do
+    setup :create_users
+
+    @tag count: 3
+    test "returns the correct count of admin users" do
+      assert Users.count(role: :admin) == 3
+    end
+
+    @tag count: 7, role: :unprivileged
+    test "returns the correct count of unprivileged users" do
+      assert Users.count(role: :unprivileged) == 7
+    end
+  end
+
+  describe "trimmed fields" do
+    test "trims expected fields" do
+      changeset =
+        Users.User.create_changeset(struct(Users.User), %{
+          "email" => " foo "
+        })
+
+      assert %Ecto.Changeset{
+               changes: %{
+                 email: "foo"
+               }
+             } = changeset
+    end
+  end
+
   describe "consume_sign_in_token/1 valid token" do
     setup [:create_user_with_valid_sign_in_token]
 
@@ -310,7 +347,7 @@ defmodule FzHttp.UsersTest do
       {:ok, user: user}
     end
 
-    @tag :unprivileged
+    @tag role: :unprivileged
     test "enable via OIDC", %{user: user} do
       Users.enable_vpn_connection(user, %{provider: :oidc})
 
@@ -319,7 +356,7 @@ defmodule FzHttp.UsersTest do
       assert %{disabled_at: nil} = user
     end
 
-    @tag :unprivileged
+    @tag role: :unprivileged
     test "no change via password", %{user: user} do
       Users.enable_vpn_connection(user, %{provider: :identity})
 

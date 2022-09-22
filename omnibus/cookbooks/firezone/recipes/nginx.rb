@@ -61,11 +61,11 @@ template 'redirect.conf' do
   group node['firezone']['group']
   mode '0640'
   variables(
-    acme: { 'enabled' => node['firezone']['ssl']['acme']['enabled'] },
     server_name: URI.parse(node['firezone']['external_url']).host,
     acme_www_root: "#{node['firezone']['var_directory']}/nginx/acme_root",
     rate_limiting_zone_name: node['firezone']['nginx']['rate_limiting_zone_name'],
-    ipv6: node['firezone']['nginx']['ipv6']
+    ipv6: node['firezone']['nginx']['ipv6'],
+    acme: node['firezone']['ssl']['acme']
   )
 end
 
@@ -74,8 +74,8 @@ if node['firezone']['nginx']['enabled']
     package 'firezone'
     action :enable
     subscribes :restart, 'template[nginx.conf]'
-    subscribes :restart, 'template[redirect.conf]'
     subscribes :restart, 'template[phoenix.nginx.conf]'
+    subscribes :restart, 'template[redirect.conf]'
     subscribes :restart, 'template[acme.conf]'
   end
 else
