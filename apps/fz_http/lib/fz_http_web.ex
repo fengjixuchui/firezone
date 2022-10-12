@@ -41,10 +41,13 @@ defmodule FzHttpWeb do
       # Use all HTML functionality (forms, tags, etc)
       use Phoenix.HTML
 
+      # Use all LiveView functionality
+      use Phoenix.Component, global_prefixes: ~w(x-)
+
       import FzHttpWeb.ErrorHelpers
       import FzHttpWeb.AuthorizationHelpers
       import FzHttpWeb.Gettext
-      import Phoenix.LiveView.Helpers
+      import FzHttpWeb.LiveHelpers
       alias FzHttpWeb.Router.Helpers, as: Routes
 
       def render_common(template, assigns \\ []) do
@@ -57,7 +60,7 @@ defmodule FzHttpWeb do
     quote do
       use Phoenix.LiveView, layout: {FzHttpWeb.LayoutView, "live.html"}
       import FzHttpWeb.LiveHelpers
-      alias FzHttp.Conf
+      alias FzHttp.Configurations, as: Conf
       alias Phoenix.LiveView.JS
 
       unquote(view_helpers())
@@ -68,7 +71,7 @@ defmodule FzHttpWeb do
     quote do
       use Phoenix.LiveView, layout: nil
       import FzHttpWeb.LiveHelpers
-      alias FzHttp.Conf
+      alias FzHttp.Configurations, as: Conf
       alias Phoenix.LiveView.JS
 
       unquote(view_helpers())
@@ -77,9 +80,11 @@ defmodule FzHttpWeb do
 
   def live_component do
     quote do
+      import Phoenix.LiveView
       use Phoenix.LiveComponent
+      use Phoenix.Component, global_prefixes: ~w(x-)
       import FzHttpWeb.LiveHelpers
-      alias FzHttp.Conf
+      alias FzHttp.Configurations, as: Conf
 
       unquote(view_helpers())
     end

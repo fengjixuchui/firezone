@@ -130,14 +130,11 @@ defmodule FzHttpWeb.DeviceLive.Unprivileged.IndexTest do
       path = Routes.device_unprivileged_index_path(conn, :index)
       {:ok, view, _html} = live(conn, path)
 
-      new_view =
-        view
-        |> element("a", "Add Device")
-        |> render_click()
+      view
+      |> element("a", "Add Device")
+      |> render_click()
 
-      assert_patched(view, Routes.device_unprivileged_index_path(conn, :new))
-      assert new_view =~ "Add Device"
-      assert new_view =~ ~s|<form method="post" id="create-device"|
+      assert_redirected(view, Routes.device_unprivileged_index_path(conn, :new))
     end
 
     test "creates device", %{unprivileged_conn: conn} do

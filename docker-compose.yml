@@ -13,7 +13,7 @@ services:
         ipv4_address: 172.28.0.99
         ipv6_address: 2001:3990:3990::99
 
-  elixir:
+  firezone:
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -31,7 +31,6 @@ services:
       # doesn't match the platform under which Docker Engine is running. e.g.
       # WSL, Docker for Mac, etc.
       - /var/app/apps/fz_http/assets/node_modules
-      - /var/app/_build
     ports:
       - 51820:51820/udp
     environment:
@@ -51,7 +50,7 @@ services:
       - isolation
 
   postgres:
-    image: postgres:13
+    image: postgres:15rc1
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
@@ -79,7 +78,7 @@ services:
 
   client:
     depends_on:
-      - elixir
+      - firezone
     image: linuxserver/wireguard:latest
     environment:
       - PUID=1000
