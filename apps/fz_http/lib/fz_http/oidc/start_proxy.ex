@@ -6,6 +6,8 @@ defmodule FzHttp.OIDC.StartProxy do
 
   alias FzHttp.Configurations, as: Conf
 
+  require Logger
+
   def child_spec(arg) do
     %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}}
   end

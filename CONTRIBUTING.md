@@ -9,6 +9,7 @@ started.
 * [Developer Environment Setup](#developer-environment-setup)
   * [Docker Setup](#docker-setup)
     * [Docker Caveat](#docker-caveat)
+  * [Local HTTPS](#local-https)
   * [asdf-vm](#asdf-vm)
   * [Pre-commit](#pre-commit)
   * [The .env File](#the-env-file)
@@ -80,6 +81,18 @@ However, packets destined for Firezone compose cluster IPs (172.28.0.0/16)
 reach their destination through the tunnel just fine. Because of this, it's
 recommended to use `172.28.0.0/16` for your `AllowedIPs` parameter when using
 host-based WireGuard clients with Firezone running under Docker Desktop.
+
+Routing packets from _another_ host on the local network, through your development
+machine, and out to the external Internet should work as well.
+
+### Local HTTPS
+
+We use Caddy as a development proxy. The `docker-compose.yml` is set up to link
+Caddy's local root cert into your `.devcontainer/pki/authorities/local/` directory.
+
+Simply add the `root.crt` file to your browser and/or OS certificate store in
+order to have working local HTTPS. This file is generated when Caddy launches for
+the first time and will be different for each developer.
 
 ### asdf-vm Setup
 
@@ -219,7 +232,12 @@ be manually triggered by a reviewer.
 
 ### Use Detailed Commit Messages
 
-This will help tremendously during our release engineering process. E.g.
+This will help tremendously during our release engineering process.
+
+Please use the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification)
+standard to write your commit message.
+
+E.g.
 
 ```bash
 read -r -d '' COMMIT_MSG << EOM

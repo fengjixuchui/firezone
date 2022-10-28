@@ -82,10 +82,14 @@ defmodule FzHttpWeb.SettingLive.AccountTest do
       {:ok, view, _html} = live(conn, path)
 
       view
-      |> element("button.delete")
+      |> element("button[aria-label=close]")
       |> render_click()
 
-      assert_redirected(view, Routes.setting_account_path(conn, :show))
+      # Ensure view's messages are flushed... prevents intermittent failures
+      # See https://elixirforum.com/t/testing-liveviews-that-rely-on-pubsub-for-updates/40938/5
+      _ = :sys.get_state(view.pid)
+
+      assert_patched(view, Routes.setting_account_path(conn, :show))
     end
   end
 end

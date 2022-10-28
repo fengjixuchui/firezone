@@ -34,13 +34,13 @@
 
 Follow our [deploy guide](https://docs.firezone.dev/deploy) to install your self-hosted instance of Firezone.
 
-Or, if you're on a [supported platform](https://docs.firezone.dev/deploy/supported-platforms), try our one-line install script:
+Or, if you're on a [supported platform](https://docs.firezone.dev/deploy/docker/supported-platforms), try our one-line install script:
 
 ```bash
-sudo -E bash -c "$(curl -fsSL https://github.com/firezone/firezone/raw/master/scripts/install.sh)"
+bash <(curl -fsSL https://github.com/firezone/firezone/raw/master/scripts/install.sh)
 ```
 
-Using Firezone for your team? Take a look at our [business tier](https://www.firezone.dev/pricing).
+Using Firezone in production at your organization? Take a look at our [Enterprise Plan](https://www.firezone.dev/pricing).
 
 ## Features
 
@@ -48,8 +48,7 @@ Using Firezone for your team? Take a look at our [business tier](https://www.fir
 
 * **Fast:** Uses WireGuard® to be [3-4 times](https://wireguard.com/performance/) faster than OpenVPN.
 * **SSO Integration:** Authenticate using any identity provider with an OpenID Connect (OIDC) connector.
-* **No dependencies:** All dependencies are bundled thanks to
-[Chef Omnibus](https://github.com/chef/omnibus).
+* **Containerized:** All dependencies are bundled via Docker.
 * **Simple:** Takes minutes to set up. Manage via a simple CLI.
 * **Secure:** Runs unprivileged. HTTPS enforced. Encrypted cookies.
 * **Firewall included:** Uses Linux [nftables](https://netfilter.org) to block unwanted egress traffic.
@@ -70,12 +69,18 @@ Additional documentation on general usage, troubleshooting, and configuration ca
 
 ## Get Help
 
-If you're looking for help installing and configuring Firezone, we're happy to
-help:
+If you're looking for help installing, configuring, or using Firezone, check our
+community support options:
 
-* [Discussion Forums](https://discourse.firez.one/): ask questions, report bugs, and suggest features
-* [Community Slack](https://www.firezone.dev/slack): join discussions, meet other users, and meet the contributors
-* [Email Us](mailto:team@firezone.dev): we're always happy to chat
+1. [Discussion Forums](https://discourse.firez.one/): Ask questions, report
+  bugs, and suggest features.
+1. [Public Slack Group](https://join.slack.com/t/firezone-users/shared_invite/zt-111043zus-j1lP_jP5ohv52FhAayzT6w):
+  Join live discussions, meet other users, and get to know the contributors.
+1. [Open a PR](https://github.com/firezone/firezone/issues): Contribute a bugfix
+  or make a contribution to Firezone.
+
+If you need help deploying or maintaining Firezone for your business, consider
+[contacting us about our paid support plan](https://firezone.dev/contact/sales).
 
 ## Star History
 

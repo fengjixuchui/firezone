@@ -51,6 +51,16 @@ defmodule FzHttpWeb.AuthController do
     end
   end
 
+  def callback(conn, %{"provider" => "saml"}) do
+    key = {idp, _} = get_session(conn, "samly_assertion_key")
+    assertion = %Samly.Assertion{} = Samly.State.get_assertion(conn, key)
+
+    with {:ok, user} <-
+           UserFromAuth.find_or_create(:saml, idp, %{"email" => assertion.subject.name}) do
+      maybe_sign_in(conn, user, %{provider: idp})
+    end
+  end
+
   def callback(conn, %{"provider" => provider_key, "state" => state} = params) do
     openid_connect = Application.fetch_env!(:fz_http, :openid_connect)
 
@@ -58,7 +68,7 @@ defmodule FzHttpWeb.AuthController do
          {:ok, _state} <- verify_state(conn, state),
          {:ok, tokens} <- openid_connect.fetch_tokens(provider, params),
          {:ok, claims} <- openid_connect.verify(provider, tokens["id_token"]) do
-      case UserFromAuth.find_or_create(provider, claims) do
+      case UserFromAuth.find_or_create(provider_key, claims) do
         {:ok, user} ->
           # only first-time connect will include refresh token
           with %{"refresh_token" => refresh_token} <- tokens do

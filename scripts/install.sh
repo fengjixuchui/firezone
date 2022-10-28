@@ -1,17 +1,30 @@
 #!/bin/bash
 set -e
 
-osCheck () {
-  os=`uname -s`
-  if [ ! $os = "Linux" ]; then
-    echo "Please ensure you're running this script on Linux and try again."
+dockerCheck () {
+  if ! type docker > /dev/null; then
+    echo "docker not found. Please install docker and try again."
     exit
   fi
+
+  if command -v docker-compose &> /dev/null; then
+    dc="docker-compose"
+  else
+    dc="docker compose"
+  fi
+
+  set +e
+  $dc version | grep -q "v2"
+  if [ $? -ne 0 ]; then
+    echo "Error: Automatic installation is only supported with Docker Compose version 2 or higher."
+    echo "Please upgrade Docker Compose or use the manual installation method: https://docs.firezone.dev/deploy/docker"
+    exit 1
+  fi
+  set -e
 }
 
-curlCheck () {
-  if ! type curl > /dev/null; then
-    echo 'curl not found. Please install curl to use this script.'
+curlCheck () { if ! type curl > /dev/null; then
+    echo "curl not found. Please install curl to use this script."
     exit
   fi
 }
@@ -21,7 +34,7 @@ capture () {
     if [ ! -z "$telemetry_id" ]; then
       curl -s -XPOST \
         -m 5 \
-        -H 'Content-Type: application/json' \
+        -H "Content-Type: application/json" \
         -d "{
           \"api_key\": \"phc_ubuPhiqqjMdedpmbWpG2Ak3axqv5eMVhFDNBaXl9UZK\",
           \"event\": \"$1\",
@@ -35,134 +48,154 @@ capture () {
     fi
   fi
 }
+
+promptInstallDir() {
+  read -p "$1" installDir
+  if [ -z "$installDir" ]; then
+    installDir=$defaultInstallDir
+  fi
+  if ! test -d $installDir; then
+    mkdir $installDir
+  fi
+}
+
+promptExternalUrl() {
+  read -p "$1" externalUrl
+  # Remove trailing slash if present
+  externalUrl=$(echo $externalUrl | sed "s:/*$::")
+  if [ -z "$externalUrl" ]; then
+    externalUrl=$defaultExternalUrl
+  fi
+}
+
 promptEmail() {
-  echo $1
-  read adminEmail
+  read -p "$1" adminEmail
   case $adminEmail in
-    *@*) adminUser=$adminEmail;;
-    *) promptEmail "Please provide a valid email: "
+    *@*)
+      adminUser=$adminEmail
+      ;;
+    *)
+      promptEmail "Please provide a valid email: "
+      ;;
   esac
 }
 
 promptContact() {
-  echo "Could we email you to ask for product feedback? Firezone depends heavily on input from users like you to steer development. (Y/n): "
-  read contact
+  read -p "Could we email you to ask for product feedback? Firezone depends heavily on input from users like you to steer development. (Y/n): " contact
   case $contact in
-    n|N);;
-    *) capture "contactOk" $adminUser
+    n|N)
+      ;;
+    *)
+      capture "contactOk" $adminUser
+      ;;
   esac
 }
 
-wireguardCheck() {
-  if ! test -f /sys/module/wireguard/version; then
-    if test -d /lib/modules/$(uname -r) && test -f `find /lib/modules/$(uname -r) -type f -name 'wireguard.ko'`; then
-      echo "WireGuard kernel module found, but not loaded. Load it now? (Y/n): "
-      read load_wgmod
-      case $load_wgmod in
-        n|N) echo "Load it with 'sudo modprobe wireguard' and run this install script again"; exit;;
-        *) modprobe wireguard
-      esac
-    else
-      echo "Error! WireGuard not detected. Please upgrade your kernel to at least 5.6 or install the WireGuard kernel module."
-      echo "See more at https://www.wireguard.com/install/"
-      exit
-    fi
-  fi
-}
-
-kernelCheck() {
-  major=`uname -r | cut -d'.' -f1`
-  if [ "$major" -lt "5" ]; then
-    echo "Kernel version `uname -r ` is not supported. Please upgrade to 5.0 or higher."
-    exit
-  fi
-}
-
-# determines distro and sets up and installs from cloudsmith repo
-# aborts if it can't detect or is not supported
-setupCloudsmithRepoAndInstall() {
-  hostinfo=`hostnamectl | egrep -i 'opera'`
-  if [[ "$hostinfo" =~ .*"Debian GNU/Linux 10".* || \
-        "$hostinfo" =~ .*"Debian GNU/Linux 11".* || \
-        "$hostinfo" =~ .*"Ubuntu 18.04".*        || \
-        "$hostinfo" =~ .*"Ubuntu 2"(0|1|2)".04".*
-     ]]
-  then
-    if [ ! -f /etc/apt/sources.list.d/firezone-firezone.list ]; then
-      apt-get -qqy update
-      apt-get -qqy install apt-transport-https gnupg
-      setupCloudsmithRepo "deb"
-    else
-      apt-get -qqy update
-    fi
-
-    apt-get install -y firezone
-  elif [[ "$hostinfo" =~ .*"Amazon Linux 2".*                   || \
-          "$hostinfo" =~ .*"Fedora 33".*                        || \
-          "$hostinfo" =~ .*"Fedora 34".*                        || \
-          "$hostinfo" =~ .*"Fedora Linux 3"(5|6).*              || \
-          "$hostinfo" =~ .*"CentOS Linux 7".*                   || \
-          "$hostinfo" =~ .*"CentOS Stream 8".*                  || \
-          "$hostinfo" =~ .*"CentOS Linux 8".*                   || \
-          "$hostinfo" =~ .*"CentOS Stream 9".*                  || \
-          "$hostinfo" =~ .*"Oracle Linux Server "(7|8|9).*      || \
-          "$hostinfo" =~ .*"Red Hat Enterprise Linux "(7|8|9).* || \
-          "$hostinfo" =~ .*"Rocky Linux 8".*                    || \
-          "$hostinfo" =~ .*"AlmaLinux 8".*                      || \
-          "$hostinfo" =~ .*"VzLinux 8".*
-       ]]
-  then
-    if [ ! -f /etc/yum.repos.d/firezone-firezone.repo ]; then
-      setupCloudsmithRepo "rpm"
-    fi
-
-    yum install -y firezone
-  elif [[ "$hostinfo" =~ .*"openSUSE Leap 15".* ]]
-  then
-    if ! zypper lr | grep firezone-firezone; then
-      setupCloudsmithRepo "rpm"
-    else
-      zypper --non-interactive --quiet ref firezone-firezone
-    fi
-
-    zypper --non-interactive install -y firezone
-  else
-    echo "Did not detect a supported Linux distribution. Try using the manual installation method using a release package from a similar distribution. Aborting."
-    exit
-  fi
-}
-
-setupCloudsmithRepo() {
-  curl -1sLf \
-    "https://dl.cloudsmith.io/public/firezone/firezone/setup.$1.sh" \
-    | bash
+promptACME() {
+  read -p "Would you like to enable automatic SSL cert provisioning? Requires a valid DNS record and port 80 to be reachable. (Y/n): " acme
+  case $acme in
+    n|N)
+      caddyOpts="--internal-certs"
+      ;;
+    *)
+      caddyOpts=""
+      ;;
+  esac
 }
 
 firezoneSetup() {
-  conf="/opt/firezone/embedded/cookbooks/firezone/attributes/default.rb"
-  sed -i "s/firezone@localhost/$1/" $conf
-  sed -i "s/default\['firezone']\['external_url'].*/default['firezone']['external_url'] = 'https:\/\/$public_ip'/" $conf
-  firezone-ctl reconfigure
-  firezone-ctl create-or-reset-admin
+  export FZ_INSTALL_DIR=$installDir
+
+  if ! test -f $installDir/docker-compose.yml; then
+    curl -fsSL https://raw.githubusercontent.com/firezone/firezone/master/docker-compose.prod.yml -o $installDir/docker-compose.yml
+  fi
+  db_pass=$(od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo)
+  docker run --rm firezone/firezone bin/gen-env > "$installDir/.env"
+  sed -i.bak "s/ADMIN_EMAIL=.*/ADMIN_EMAIL=$1/" "$installDir/.env"
+  sed -i.bak "s~EXTERNAL_URL=.*~EXTERNAL_URL=$2~" "$installDir/.env"
+  sed -i.bak "s/DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$db_pass/" "$installDir/.env"
+  echo "CADDY_OPTS=$3" >> "$installDir/.env"
+
+  # XXX: This causes perms issues on macOS with postgres
+  # echo "UID=$(id -u)" >> $installDir/.env
+  # echo "GID=$(id -g)" >> $installDir/.env
+
+  # Set DATABASE_PASSWORD explicitly here in case the user has this var set in their shell
+  DATABASE_PASSWORD=$db_pass $dc -f $installDir/docker-compose.yml up -d postgres
+  echo "Waiting for DB to boot..."
+  sleep 5
+  $dc -f $installDir/docker-compose.yml logs postgres
+  echo "Resetting DB password..."
+  $dc -f $installDir/docker-compose.yml exec postgres psql -p 5432 -U postgres -d firezone -h 127.0.0.1 -c "ALTER ROLE postgres WITH PASSWORD '${db_pass}'"
+  $dc -f $installDir/docker-compose.yml up -d firezone caddy
+  echo "Waiting for app to boot before creating admin..."
+  sleep 15
+  $dc -f $installDir/docker-compose.yml exec firezone bin/create-or-reset-admin
+
+  displayLogo
+
+cat << EOF
+Installation complete!
+
+You should now be able to log into the Web UI at $externalUrl with the
+following credentials:
+
+`grep ADMIN_EMAIL $installDir/.env`
+`grep DEFAULT_ADMIN_PASSWORD $installDir/.env`
+
+EOF
+}
+
+displayLogo() {
+cat << EOF
+
+                                      ::
+                                       !!:
+                                       .??^
+                                        ~J?^
+                                        :???.
+                                        .??J^
+                                        .??J!
+                                        .??J!
+                                        ^J?J~
+                                        !???:
+                                       .???? ::
+                                       ^J?J! :~:
+                                       7???: :~~
+                                      .???7  ~~~.
+                                      :??J^ :~~^
+                                      :???..~~~:
+    .............                     .?J7 ^~~~        ....
+ ..        ......::....                ~J!.~~~^       ::..
+                  ...:::....            !7^~~~^     .^: .
+                      ...:::....         ~~~~~~:. .:~^ .
+                         ....:::....      .~~~~~~~~~:..
+                             ...::::....   .::^^^^:...
+                                .....:::.............
+                                    .......:::.....
+
+EOF
 }
 
 main() {
-  adminUser=''
-  kernelCheck
-  wireguardCheck
-  promptEmail "Enter the administrator email you'd like to use for logging into this Firezone instance:"
+  defaultExternalUrl="https://$(hostname)"
+  adminUser=""
+  externalUrl=""
+  defaultInstallDir="$HOME/.firezone"
+  caddyOpts=""
+  promptEmail "Enter the administrator email you'd like to use for logging into this Firezone instance: "
+  promptInstallDir "Enter the desired installation directory ($defaultInstallDir): "
+  promptExternalUrl "Enter the external URL that will be used to access this instance. ($defaultExternalUrl): "
+  promptACME
   promptContact
-  echo "Press <ENTER> to install or Ctrl-C to abort."
-  read
-  setupCloudsmithRepoAndInstall
-  firezoneSetup $adminUser
+  read -p "Press <ENTER> to install or Ctrl-C to abort."
+  firezoneSetup $adminUser $externalUrl $caddyOpts
 }
 
-osCheck
+dockerCheck
 curlCheck
 
-telemetry_id=`od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo`
-public_ip=`curl -m 5 --silent ifconfig.me`
+telemetry_id=$(od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo)
 
 capture "install" "email-not-collected@dummy.domain"
 

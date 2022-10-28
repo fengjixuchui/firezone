@@ -5,7 +5,7 @@ defmodule FzHttpWeb.Router do
 
   use FzHttpWeb, :router
 
-  # Limit total requests to 20 per every 10 seconds
+  # Limit total requests to 50 per every 10 seconds
   @root_rate_limit [rate_limit: {"root", 10_000, 50}, by: :ip]
 
   pipeline :browser do
@@ -45,6 +45,11 @@ defmodule FzHttpWeb.Router do
     plug FzHttpWeb.Authentication.Pipeline
   end
 
+  pipeline :samly do
+    plug :fetch_session
+    plug FzHttpWeb.Plug.SamlyTargetUrl
+  end
+
   # Ueberauth routes
   scope "/auth", FzHttpWeb do
     pipe_through [
@@ -62,6 +67,12 @@ defmodule FzHttpWeb.Router do
     post "/:provider/callback", AuthController, :callback
     get "/oidc/:provider/callback", AuthController, :callback, as: :auth_oidc
     get "/oidc/:provider", AuthController, :redirect_oidc_auth_uri, as: :auth_oidc
+  end
+
+  scope "/auth/saml" do
+    pipe_through :samly
+
+    forward "/", Samly.Router
   end
 
   # Unauthenticated routes
@@ -155,7 +166,11 @@ defmodule FzHttpWeb.Router do
       live "/devices", DeviceLive.Admin.Index, :index
       live "/devices/:id", DeviceLive.Admin.Show, :show
       live "/settings/site", SettingLive.Site, :show
+
       live "/settings/security", SettingLive.Security, :show
+      live "/settings/security/oidc/:id/edit", SettingLive.Security, :edit_oidc
+      live "/settings/security/saml/:id/edit", SettingLive.Security, :edit_saml
+
       live "/settings/account", SettingLive.Account, :show
       live "/settings/account/edit", SettingLive.Account, :edit
       live "/settings/account/register_mfa", SettingLive.Account, :register_mfa
@@ -173,6 +188,9 @@ defmodule FzHttpWeb.Router do
 
       forward "/mailbox", Plug.Swoosh.MailboxPreview
       live_dashboard "/dashboard"
+
+      get "/samly", FzHttpWeb.DebugController, :samly
+      get "/session", FzHttpWeb.DebugController, :session
     end
   end
 end
