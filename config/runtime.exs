@@ -5,10 +5,18 @@
 
 import Config
 
-alias FzCommon.{CLI, FzInteger, FzString, FzKernelVersion}
+alias FzCommon.{CLI, FzInteger, FzString, FzKernelVersion, FzNet}
 
-# external_url is important
-external_url = System.get_env("EXTERNAL_URL", "https://localhost")
+# external_url is important, so fail fast here if we can't parse
+{:ok, external_url} =
+  if config_env() == :prod do
+    System.fetch_env!("EXTERNAL_URL")
+    |> FzNet.to_complete_url()
+  else
+    System.get_env("EXTERNAL_URL", "https://localhost")
+    |> FzNet.to_complete_url()
+  end
+
 config :fz_http, :external_url, external_url
 
 %{host: host, path: path, port: port, scheme: scheme} = URI.parse(external_url)
@@ -37,6 +45,7 @@ if config_env() == :prod do
   wireguard_private_key_path =
     System.get_env("WIREGUARD_PRIVATE_KEY_PATH", "/var/firezone/private_key")
 
+  saml_entity_id = System.get_env("SAML_ENTITY_ID", "urn:firezone.dev:firezone-app")
   saml_keyfile_path = System.get_env("SAML_KEYFILE_PATH", "/var/firezone/saml.key")
   saml_certfile_path = System.get_env("SAML_CERTFILE_PATH", "/var/firezone/saml.crt")
   database_name = System.get_env("DATABASE_NAME", "firezone")
@@ -214,6 +223,7 @@ if config_env() == :prod do
     secret_key: guardian_secret_key
 
   config :fz_http,
+    saml_entity_id: saml_entity_id,
     saml_certfile_path: saml_certfile_path,
     saml_keyfile_path: saml_keyfile_path,
     external_trusted_proxies: external_trusted_proxies,

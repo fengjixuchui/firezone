@@ -4,13 +4,18 @@ set -e
 dockerCheck () {
   if ! type docker > /dev/null; then
     echo "docker not found. Please install docker and try again."
-    exit
+    exit 1
   fi
 
-  if command -v docker-compose &> /dev/null; then
-    dc="docker-compose"
-  else
+  if command docker compose &> /dev/null; then
     dc="docker compose"
+  else
+    if command -v docker-compose &> /dev/null; then
+      dc="docker-compose"
+    else
+      echo "Error: Docker Compose not found. Please install Docker Compose version 2 or higher."
+      exit 1
+    fi
   fi
 
   set +e
@@ -23,9 +28,10 @@ dockerCheck () {
   set -e
 }
 
-curlCheck () { if ! type curl > /dev/null; then
+curlCheck () {
+  if ! type curl > /dev/null; then
     echo "curl not found. Please install curl to use this script."
-    exit
+    exit 1
   fi
 }
 
@@ -95,10 +101,26 @@ promptACME() {
   read -p "Would you like to enable automatic SSL cert provisioning? Requires a valid DNS record and port 80 to be reachable. (Y/n): " acme
   case $acme in
     n|N)
-      caddyOpts="--internal-certs"
+      tlsOpts="tls internal {
+                on_demand
+              }"
       ;;
     *)
-      caddyOpts=""
+      tlsOpts="tls {
+                on_demand
+              }"
+      ;;
+  esac
+}
+
+promptTelemetry() {
+  read -p "Firezone collects crash and performance logs to help us improve the product. Would you like to disable this? (N/y): " telem
+  case $telem in
+    y|Y)
+      telemEnabled="false"
+      ;;
+    *)
+      telemEnabled="true"
       ;;
   esac
 }
@@ -107,14 +129,24 @@ firezoneSetup() {
   export FZ_INSTALL_DIR=$installDir
 
   if ! test -f $installDir/docker-compose.yml; then
-    curl -fsSL https://raw.githubusercontent.com/firezone/firezone/master/docker-compose.prod.yml -o $installDir/docker-compose.yml
+    os_type="$(uname -s)"
+    case "${os_type}" in
+      Linux*)
+        file=docker-compose.prod.yml
+        ;;
+      *)
+        file=docker-compose.desktop.yml
+        ;;
+    esac
+    curl -fsSL https://raw.githubusercontent.com/firezone/firezone/master/$file -o $installDir/docker-compose.yml
   fi
   db_pass=$(od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo)
   docker run --rm firezone/firezone bin/gen-env > "$installDir/.env"
   sed -i.bak "s/ADMIN_EMAIL=.*/ADMIN_EMAIL=$1/" "$installDir/.env"
   sed -i.bak "s~EXTERNAL_URL=.*~EXTERNAL_URL=$2~" "$installDir/.env"
   sed -i.bak "s/DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$db_pass/" "$installDir/.env"
-  echo "CADDY_OPTS=$3" >> "$installDir/.env"
+  echo "TLS_OPTS=\"$3\"" >> "$installDir/.env"
+  echo "TELEMETRY_ENABLED=$telemEnabled" >> "$installDir/.env"
 
   # XXX: This causes perms issues on macOS with postgres
   # echo "UID=$(id -u)" >> $installDir/.env
@@ -182,21 +214,23 @@ main() {
   adminUser=""
   externalUrl=""
   defaultInstallDir="$HOME/.firezone"
-  caddyOpts=""
+  tlsOpts=""
   promptEmail "Enter the administrator email you'd like to use for logging into this Firezone instance: "
   promptInstallDir "Enter the desired installation directory ($defaultInstallDir): "
   promptExternalUrl "Enter the external URL that will be used to access this instance. ($defaultExternalUrl): "
   promptACME
   promptContact
+  promptTelemetry
   read -p "Press <ENTER> to install or Ctrl-C to abort."
-  firezoneSetup $adminUser $externalUrl $caddyOpts
+  if [ $telemEnabled = "true" ]; then
+    capture "install" "email-not-collected@dummy.domain"
+  fi
+  firezoneSetup $adminUser $externalUrl "$tlsOpts"
 }
 
 dockerCheck
 curlCheck
 
 telemetry_id=$(od -vN "8" -An -tx1 /dev/urandom | tr -d " \n" ; echo)
-
-capture "install" "email-not-collected@dummy.domain"
 
 main

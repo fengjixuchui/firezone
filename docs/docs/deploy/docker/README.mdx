@@ -52,18 +52,21 @@ This will ask you a few questions regarding initial configuration, then proceed
 to download a sample docker-compose.yml file, configure it with your responses,
 and then print instructions for accessing the Web UI.
 
-Firezone files will be installed in `/data/firezone` by default.
+Firezone files will be installed in `$HOME/.firezone` by default.
 
 ### Option 2: Manual Install
 
 If the automatic install fails, or you'd just like more control over the
 installation process, follow the steps below to install manually.
 
-1. Ensure you're on a supported platform and have a recent version of
-   [docker-compose](https://docs.docker.com/compose/install/) installed.
 1. Download the docker compose template to a local working directory:
+  **For Linux**:
   ```shell
   curl -fsSL https://raw.githubusercontent.com/firezone/firezone/master/docker-compose.prod.yml -o docker-compose.yml
+  ```
+  **For macOS, Windows (non-production only)**:
+  ```shell
+  curl -fsSL https://raw.githubusercontent.com/firezone/firezone/master/docker-compose.desktop.yml -o docker-compose.yml
   ```
 1. Generate required secrets:
   ```shell
@@ -80,7 +83,19 @@ installation process, follow the steps below to install manually.
 You should now be able to access the Firezone web portal at the `EXTERNAL_URL`
 variable you defined above.
 
-## Step 3: Install Client Apps
+## Step 3: Enable on Boot (optional)
+
+If you'd like Firezone to start automatically on boot, first ensure Docker is enabled at startup:
+
+```
+sudo systemctl enable docker
+```
+
+Then, make sure your Firezone services have the `restart: always` or `restart: unless-stopped` option
+specified in the `docker-compose.yml` file. This is the default used in the docker-compose.prod.yml
+production template file.
+
+## Step 4: Install Client Apps
 
 Once successfully deployed, users and devices can be added to
 connect to the VPN server:
@@ -107,8 +122,8 @@ Firezone:
 
 * [Integrate your identity provider](../../authenticate/)
   for authenticating clients
-* Using Firezone to
-  [establish a static IP](../../user-guides/use-cases/nat-gateway)
+* Using Firezone as a NAT gateway to
+  [establish a static IP for your team](../../user-guides/use-cases/nat-gateway)
 * Create tunnels between multiple peers with
   [reverse tunnels](../../user-guides/use-cases/reverse-tunnel)
 * Only route certain traffic through Firezone with

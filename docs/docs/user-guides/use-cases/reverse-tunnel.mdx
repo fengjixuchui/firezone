@@ -17,7 +17,7 @@ between Device A and Device B.
 Start by creating Device A and Device B by navigating to `/users/[user_id]/new_device`.
 In the settings for each device, ensure the following parameters are set to the
 values listed below. You can set device settings when creating the device config
-(see [Add Devices](../add-devices)).
+(see [Add Devices](/user-guides/add-devices/)).
 If you need to update settings on an existing device, you can do so by generating
 a new device config.
 
@@ -26,7 +26,7 @@ Note `PersistentKeepalive` can also be set in on the
 
 Device A
 
-- `AllowedIPs = 10.3.2.2/32`: This is the IP or range of IPs of Device B
+- `AllowedIPs = 10.3.2.3/32`: This is the IP or range of IPs of Device B
 - `PersistentKeepalive = 25` If the device is behind a NAT, this ensures the
   device is able to keep the tunnel alive and continue to receive packets from
   the WireGuard interface. Usually a value of `25` is sufficient, but you may
@@ -34,7 +34,7 @@ Device A
 
 Device B
 
-- `AllowedIPs = 10.3.2.3/32`: This is the IP or range of IPs of Device A
+- `AllowedIPs = 10.3.2.2/32`: This is the IP or range of IPs of Device A
 - `PersistentKeepalive = 25`
 
 ## Admin Case - One to Many Nodes
@@ -48,7 +48,7 @@ administrator or engineer accessing multiple resources
 
 In the settings for each device, ensure the following parameters are set to the
 values listed below. You can set device settings when creating the device config
-(see [Add Devices](../add-devices)).
+(see [Add Devices](/user-guides/add-devices/)).
 If you need to update settings on an existing device, you can do so by generating
 a new device config.
 
@@ -79,4 +79,4 @@ Device D
 
 ### Related Guides
 
-- [NAT Gateway](./nat-gateway)
+- [NAT Gateway](/user-guides/use-cases/nat-gateway/)

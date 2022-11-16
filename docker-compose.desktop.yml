@@ -1,4 +1,5 @@
-# Example compose file for production deployment on Linux.
+# Example compose file for a running a local Firezone instance on
+# macOS or Windows.
 #
 # Note: This file is meant to serve as a template. Please modify it
 # according to your needs. Read more about Docker Compose:
@@ -22,7 +23,10 @@ services:
     image: caddy:2
     volumes:
       - ${FZ_INSTALL_DIR:-.}/caddy:/data/caddy
-    # See Caddy's documentation for customizing this line
+    ports:
+      - 80:80
+      - 443:443
+    # See Caddy's documentation for customizing the Caddyfile
     # https://caddyserver.com/docs/quick-starts/reverse-proxy
     command:
       - /bin/sh
@@ -32,11 +36,12 @@ services:
 
         https:// {
           log
-          reverse_proxy * 172.25.0.100:13000
-          ${TLS_OPTS:-}
+          reverse_proxy * firezone:13000
+          tls internal {
+            on_demand
+          }
         }
         EOF
-    network_mode: "host"
     deploy:
       <<: *default-deploy
 
@@ -64,9 +69,6 @@ services:
       - net.ipv6.conf.all.forwarding=1
     depends_on:
       - postgres
-    networks:
-      firezone-network:
-        ipv4_address: 172.25.0.100
     deploy:
       <<: *default-deploy
 
@@ -78,8 +80,6 @@ services:
       POSTGRES_DB: ${DATABASE_NAME:-firezone}
       POSTGRES_USER: ${DATABASE_USER:-postgres}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?err}
-    networks:
-      - firezone-network
     deploy:
       <<: *default-deploy
       update_config:
@@ -88,10 +88,3 @@ services:
 # Postgres needs a named volume to prevent perms issues on non-linux platforms
 volumes:
   postgres-data:
-
-networks:
-  firezone-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.25.0.0/16
