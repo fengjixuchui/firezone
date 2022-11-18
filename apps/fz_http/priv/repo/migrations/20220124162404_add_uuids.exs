@@ -3,7 +3,7 @@ defmodule FzHttp.Repo.Migrations.AddUuids do
 
   def change do
     execute(
-      "CREATE EXTENSION pgcrypto",
+      "CREATE EXTENSION IF NOT EXISTS pgcrypto",
       "DROP EXTENSION pgcrypto"
     )
 
@@ -22,8 +22,8 @@ defmodule FzHttp.Repo.Migrations.AddUuids do
       "ALTER TABLE users DROP COLUMN uuid"
     )
 
-    create unique_index(:rules, :uuid)
-    create unique_index(:devices, :uuid)
-    create unique_index(:users, :uuid)
+    create(unique_index(:rules, :uuid))
+    create(unique_index(:devices, :uuid))
+    create(unique_index(:users, :uuid))
   end
 end
