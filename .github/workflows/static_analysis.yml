@@ -1,5 +1,9 @@
 name: Static Analysis
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
 
 jobs:
   static-analysis:
@@ -14,7 +18,7 @@ jobs:
           node-version: '16'
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
-      - uses: actions/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.7'
       - uses: actions/setup-python@v2
@@ -32,7 +36,6 @@ jobs:
             _build
           key: ${{ runner.os }}-mix-otp-25-${{ hashFiles('**/mix.lock') }}
           restore-keys: |
-            ${{ runner.os }}-mix-otp-25-${{ hashFiles('**/mix.lock') }}
             ${{ runner.os }}-mix-otp-25-
       - uses: actions/cache@v3.0.11
         name: Setup ruby cache
@@ -58,7 +61,7 @@ jobs:
         run: |
           pip install -r requirements.txt
       # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
-      # Cache key based on Elixir & Erlang version (also usefull when running in matrix)
+      # Cache key based on Elixir & Erlang version (also useful when running in matrix)
       - name: Restore PLT cache
         uses: actions/cache@v3.0.11
         id: plt_cache

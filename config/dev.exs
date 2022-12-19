@@ -31,8 +31,15 @@ config :fz_http, FzHttpWeb.Endpoint,
   ]
 
 get_egress_interface = fn ->
-  egress_interface_cmd = "route | grep '^default' | grep -o '[^ ]*$'"
-  System.cmd("/bin/sh", ["-c", egress_interface_cmd]) |> elem(0) |> String.trim()
+  egress_interface_cmd =
+    case :os.type() do
+      {:unix, :darwin} -> "netstat -rn -finet | grep '^default' | awk '{print $NF;}'"
+      {_os_family, _os_name} -> "route | grep '^default' | grep -o '[^ ]*$'"
+    end
+
+  System.cmd("/bin/sh", ["-c", egress_interface_cmd], stderr_to_stdout: true)
+  |> elem(0)
+  |> String.trim()
 end
 
 egress_interface = System.get_env("EGRESS_INTERFACE") || get_egress_interface.()
@@ -125,9 +132,8 @@ config :phoenix, :plug_init_mode, :runtime
 
 config :fz_http,
   private_clients: ["172.28.0.0/16"],
-  wireguard_allowed_ips: "172.28.0.0/16",
   cookie_secure: false,
   telemetry_module: FzCommon.MockTelemetry,
   local_auth_enabled: local_auth_enabled
 
-config :fz_http, FzHttp.Mailer, adapter: Swoosh.Adapters.Local, from_email: "dev@firez.one"
+config :fz_http, FzHttpWeb.Mailer, adapter: Swoosh.Adapters.Local, from_email: "dev@firez.one"

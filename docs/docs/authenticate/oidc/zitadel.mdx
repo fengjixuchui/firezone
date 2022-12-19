@@ -1,7 +1,13 @@
 ---
 title: Zitadel
 sidebar_position: 7
+description:
+    Enforce 2FA/MFA for users of Firezone's WireGuard®-based
+    secure access platform. This guide walks through integrating Zitadel
+    for single sign-on using OpenID Connect (OIDC).
 ---
+
+# Enable SSO with Zitadel (OIDC)
 
 Firezone supports Single Sign-On (SSO) using Zitadel
 through the generic OIDC connector. This guide will walk you through how to
@@ -42,7 +48,7 @@ then click **New**.
 Give the application a name (e.g. "Firezone") and select **WEB**
 for the application type.
 
-![Name the applicaiton and select type WEB](https://user-images.githubusercontent.com/42775578/190860326-cb6998a1-035a-4324-89f8-3c31fb2dfeea.png)
+![Name the application and select type WEB](https://user-images.githubusercontent.com/42775578/190860326-cb6998a1-035a-4324-89f8-3c31fb2dfeea.png)
 
 Select **CODE** for the authentication method.
 
@@ -58,7 +64,7 @@ Specify the redirect URI and post logout URI.
 
 Double-check the configuration, then click **Create**.
 
-![Configuratin Overview](https://user-images.githubusercontent.com/42775578/190860669-f478d930-24a0-4854-8631-bc3b1025e3db.png)
+![Configuration Overview](https://user-images.githubusercontent.com/42775578/190860669-f478d930-24a0-4854-8631-bc3b1025e3db.png)
 
 Copy the **ClientId** and **ClientSecret** as it will be used for the Firezone
 configuration.

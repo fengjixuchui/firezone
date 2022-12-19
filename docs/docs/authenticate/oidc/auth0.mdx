@@ -1,7 +1,13 @@
 ---
 title: Auth0
 sidebar_position: 1
+description:
+    Enforce 2FA/MFA for users of Firezone's WireGuard®-based
+    secure access platform. This guide walks through integrating Auth0
+    for single sign-on using OpenID Connect (OIDC).
 ---
+
+# Enable SSO with Auth0 (OIDC)
 
 Firezone supports Single Sign-On (SSO) using Auth0
 through the generic OIDC connector. This guide will walk you through how to
@@ -34,7 +40,7 @@ modify the following parameters:
 
 1. **Name**: `Firezone`
 1. **Domain**: The domain will be used to construct
-the url to retreive the OIDC discovery document -
+the url to retrieve the OIDC discovery document -
 `https://<AUTH0_DOMAIN>/.well-known/openid-configuration`
 1. **Icon**:
 [Firezone icon](https://user-images.githubusercontent.com/52545545/156854754-da66a9e1-33d5-47f5-877f-eff8b330ab2b.png)

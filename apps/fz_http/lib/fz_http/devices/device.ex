@@ -13,6 +13,7 @@ defmodule FzHttp.Devices.Device do
       validate_fqdn_or_ip: 2,
       validate_omitted: 2,
       validate_no_duplicates: 2,
+      validate_no_mask: 2,
       validate_list_of_ips_or_cidrs: 2
     ]
 
@@ -60,7 +61,7 @@ defmodule FzHttp.Devices.Device do
     timestamps(type: :utc_datetime_usec)
   end
 
-  def create_changeset(device, attrs) do
+  def create_changeset(device \\ %__MODULE__{}, attrs) do
     device
     |> shared_cast(attrs)
     |> put_next_ip(:ipv4)
@@ -155,6 +156,8 @@ defmodule FzHttp.Devices.Device do
     |> validate_exclusion(:ipv6, [ipv6_address()])
     |> validate_in_network(:ipv4)
     |> validate_in_network(:ipv6)
+    |> validate_no_mask(:ipv4)
+    |> validate_no_mask(:ipv6)
     |> unique_constraint(:public_key)
     |> unique_constraint([:user_id, :name])
   end

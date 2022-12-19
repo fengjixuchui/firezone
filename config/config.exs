@@ -26,21 +26,6 @@ require Logger
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-git_sha =
-  case System.get_env("GIT_SHA") do
-    nil ->
-      case System.cmd("git", ["rev-parse", "--short", "HEAD"], stderr_to_stdout: true) do
-        {output, 0} ->
-          String.trim(output)
-
-        {_error, _code} ->
-          "deadbeef"
-      end
-
-    str ->
-      str
-  end
-
 # Public API key for telemetry
 config :posthog,
   api_url: "https://telemetry.firez.one",
@@ -60,17 +45,12 @@ config :fz_http,
   allow_unprivileged_device_management: true,
   allow_unprivileged_device_configuration: true,
   telemetry_id: "543aae08-5a2b-428d-b704-2956dd3f5a57",
-  wireguard_endpoint: nil,
-  wireguard_dns: "1.1.1.1, 1.0.0.1",
-  wireguard_allowed_ips: "0.0.0.0/0, ::/0",
-  wireguard_persistent_keepalive: 0,
   wireguard_ipv4_enabled: true,
   wireguard_ipv4_network: "10.3.2.0/24",
   wireguard_ipv4_address: "10.3.2.1",
   wireguard_ipv6_enabled: true,
   wireguard_ipv6_network: "fd00::3:2:0/120",
   wireguard_ipv6_address: "fd00::3:2:1",
-  wireguard_mtu: "1280",
   max_devices_per_user: 10,
   telemetry_module: FzCommon.Telemetry,
   supervision_tree_mode: :full,
@@ -78,7 +58,6 @@ config :fz_http,
   connectivity_checks_enabled: true,
   connectivity_checks_interval: 3_600,
   connectivity_checks_url: "https://ping-dev.firez.one/",
-  git_sha: git_sha,
   cookie_secure: true,
   cookie_signing_salt: "Z9eq8iof",
   cookie_encryption_salt: "3A33Dz4C2k",
@@ -111,7 +90,6 @@ config :fz_vpn,
   stats_push_service_enabled: true,
   wireguard_interface_name: "wg-firezone",
   wireguard_port: 51_820,
-  wireguard_endpoint: "127.0.0.1",
   wg_adapter: FzVpn.Interface.WGAdapter.Live,
   server_process_opts: [name: {:global, :fz_vpn_server}],
   supervised_children: [FzVpn.Server, FzVpn.StatsPushService]
@@ -142,7 +120,7 @@ config :fz_http, FzHttp.Vault,
     }
   ]
 
-config :fz_http, FzHttp.Mailer, adapter: FzHttp.Mailer.NoopAdapter
+config :fz_http, FzHttpWeb.Mailer, adapter: FzHttpWeb.Mailer.NoopAdapter
 
 config :samly, Samly.State, store: Samly.State.Session
 
